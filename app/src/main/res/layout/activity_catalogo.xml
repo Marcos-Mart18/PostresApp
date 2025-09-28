@@ -62,7 +62,6 @@
                 android:textColor="@color/gris"
                 android:textSize="12sp"/>
 
-            <!-- Card agregar -->
             <LinearLayout
                 android:id="@+id/cardAgregar"
                 android:layout_width="match_parent"
