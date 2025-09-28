@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/register_graph"
+    app:startDestination="@id/register1Fragment">
+
+    <fragment
+        android:id="@+id/register1Fragment"
+        android:name="com.marcos.postresapp.presentation.ui.fragment.auth.Register1Fragment"
+        android:label="fragment_register1"
+        tools:layout="@layout/fragment_register1" >
+        <action
+            android:id="@+id/action_register1Fragment_to_register2Fragment"
+            app:destination="@id/register2Fragment"
+            app:enterAnim="@anim/nav_default_enter_anim"
+            app:exitAnim="@anim/nav_default_exit_anim"
+            app:popEnterAnim="@anim/nav_default_pop_enter_anim"
+            app:popExitAnim="@anim/nav_default_pop_exit_anim" />
+    </fragment>
+    <fragment
+        android:id="@+id/register2Fragment"
+        android:name="com.marcos.postresapp.presentation.ui.fragment.auth.Register2Fragment"
+        android:label="fragment_register2"
+        tools:layout="@layout/fragment_register2" />
+
+</navigation>
