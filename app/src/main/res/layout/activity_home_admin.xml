@@ -122,7 +122,7 @@
                             android:duplicateParentState="true"/>
                     </LinearLayout>
 
-                    <!-- Categoria 1 -->
+
                     <LinearLayout
                         android:id="@+id/chipCat1"
                         android:layout_width="wrap_content"
