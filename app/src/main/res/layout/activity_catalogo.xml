@@ -72,7 +72,6 @@
                 android:background="@drawable/bg_card_agregar"
                 android:gravity="center" />
 
-            <!-- RecyclerView para categorías -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvCategorias"
                 android:layout_width="match_parent"
