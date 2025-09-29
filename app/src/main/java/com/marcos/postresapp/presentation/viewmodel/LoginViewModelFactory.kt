@@ -14,8 +14,13 @@ class LoginViewModelFactory(private val context: Context) : ViewModelProvider.Fa
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(LoginViewModel::class.java)) {
             val prefsManager = PrefsManager(context)
-            val retrofit = NetworkClient.create(prefsManager)  // Creamos Retrofit con PrefsManager
-            val api = retrofit.create(AuthApiService::class.java)  // Creamos AuthApiService con Retrofit
+
+            // Crear la instancia de AuthApiService usando Retrofit
+            val retrofit = NetworkClient.retrofit // Usamos el Retrofit creado en NetworkClient
+            val authApiService = retrofit.create(AuthApiService::class.java) // Crear la instancia de AuthApiService
+
+            // Ahora podemos pasar authApiService junto con prefsManager a NetworkClient
+            val api = retrofit.create(AuthApiService::class.java) // Crear AuthApiService
             val authRepository = AuthRepositoryImpl(api, prefsManager)  // Pasamos AuthApiService y PrefsManager
             return LoginViewModel(authRepository) as T
         }

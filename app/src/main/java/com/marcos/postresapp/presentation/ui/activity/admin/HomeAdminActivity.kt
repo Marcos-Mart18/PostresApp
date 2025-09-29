@@ -11,10 +11,8 @@ import com.google.android.material.tabs.TabLayoutMediator
 import com.marcos.postresapp.R
 import com.marcos.postresapp.presentation.ui.adapter.CatalogoPagerAdapter
 import com.marcos.postresapp.presentation.ui.fragment.ProfileFragment
-import com.marcos.postresapp.presentation.ui.fragment.admin.CatalogoAdminFragment
 import com.marcos.postresapp.presentation.ui.fragment.admin.PedidoAdminFragment
-import com.marcos.postresapp.presentation.ui.fragment.user.CatalogoUserFragment
-import com.marcos.postresapp.presentation.ui.fragment.user.PedidoUserFragment
+import com.marcos.postresapp.presentation.ui.fragment.admin.CatalogoAdminFragment
 
 class HomeAdminActivity : AppCompatActivity() {
     private lateinit var drawerLayout: DrawerLayout

@@ -11,6 +11,13 @@ class PrefsManager(context: Context) {
         }
     }
 
+    fun saveAccessToken(token: String) {
+        prefs.edit().apply {
+            putString("ACCESS_TOKEN", token)
+            apply()
+        }
+    }
+
     fun saveUserInfo(username: String, roles: List<String>, profileFotoUrl: String?) {
         prefs.edit().apply {
             putString("USERNAME", username)

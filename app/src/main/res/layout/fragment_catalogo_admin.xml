@@ -131,10 +131,17 @@
                             android:gravity="center"
                             android:layout_marginEnd="12dp">
 
+                            <Button
+                                android:id="@+id/btnSelectImage"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Seleccionar imagen" />
+
+                            <!-- ImageView para mostrar la imagen seleccionada -->
                             <ImageView
                                 android:id="@+id/imgProducto"
                                 android:layout_width="match_parent"
-                                android:layout_height="match_parent"
+                                android:layout_height="200dp"
                                 android:scaleType="centerCrop"
                                 android:src="@drawable/ic_image_placeholder"/>
                         </LinearLayout>
