@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -62,6 +63,12 @@ class CatalogoActivity : AppCompatActivity() {
 
         cargarProductos()
         cargarCategorias()
+
+        // Configuración del chip "Todos"
+        val chipTodos = findViewById<LinearLayout>(R.id.chipTodos)
+        chipTodos.setOnClickListener {
+            mostrarTodosLosProductos()
+        }
     }
 
     // Cargar productos y actualizar el RecyclerView
@@ -111,6 +118,19 @@ class CatalogoActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 Log.e("CatalogoActivity", "Error filtrando productos", e)
                 Toast.makeText(this@CatalogoActivity, "Error al filtrar productos", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    // Mostrar todos los productos (sin filtro)
+    private fun mostrarTodosLosProductos() {
+        lifecycleScope.launch {
+            try {
+                val productos = productApiService.getProductos()
+                productoAdapter.actualizarLista(productos)
+            } catch (e: Exception) {
+                Log.e("CatalogoActivity", "Error cargando productos", e)
+                Toast.makeText(this@CatalogoActivity, "Error cargando productos", Toast.LENGTH_LONG).show()
             }
         }
     }
