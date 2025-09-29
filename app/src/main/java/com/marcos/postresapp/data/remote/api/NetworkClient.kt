@@ -9,7 +9,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object NetworkClient {
 
-    private const val BASE_URL = "http://10.40.33.59:9090/"
+    private const val BASE_URL = "http://192.168.18.97:9090/"
 
     // Interceptor para agregar el token en el header de cada solicitud
     private fun provideOkHttpClient(prefsManager: PrefsManager): OkHttpClient {
