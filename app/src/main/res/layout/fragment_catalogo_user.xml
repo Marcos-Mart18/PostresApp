@@ -7,29 +7,7 @@
     android:layout_height="match_parent"
     android:background="#FFFFFF"
     android:orientation="vertical"
-    tools:context=".presentation.ui.activity.user.CatalogoActivity">
-
-    <!-- Header -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
-        android:gravity="center_vertical"
-        android:background="@color/morado">
-
-        <LinearLayout
-            android:id="@+id/btnMenu"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:gravity="center">
-
-            <ImageView
-                android:layout_width="18dp"
-                android:layout_height="14dp"
-                android:src="@drawable/btn_add_prod" />
-        </LinearLayout>
-    </LinearLayout>
+    tools:context=".presentation.ui.fragment.user.CatalogoUserFragment">
 
     <!-- Contenido scrollable -->
     <ScrollView
@@ -61,8 +39,6 @@
                 android:text="Seleccione sus Postres"
                 android:textColor="@color/gris"
                 android:textSize="12sp"/>
-
-
 
             <!-- Carrusel de imágenes -->
             <androidx.viewpager2.widget.ViewPager2
@@ -100,6 +76,7 @@
                         android:textColor="@color/color_chip_text"
                         android:textSize="13sp"/>
                 </LinearLayout>
+
                 <!-- RecyclerView de categorías -->
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvCategorias"
@@ -111,7 +88,6 @@
                     app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
                     android:orientation="horizontal" />
             </LinearLayout>
-
 
             <!-- RecyclerView de productos -->
             <androidx.recyclerview.widget.RecyclerView

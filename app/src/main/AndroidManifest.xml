@@ -14,15 +14,14 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PostresAPP"
         android:usesCleartextTraffic="true">
-        
         <activity
-            android:name=".presentation.ui.activity.admin.AgregarProductoActivity"
+            android:name=".presentation.ui.activity.repartidor.HomeRepartidorActivity"
             android:exported="false" />
         <activity
-            android:name=".presentation.ui.activity.SideActivity" 
+            android:name=".presentation.ui.activity.SideActivity"
             android:exported="false" />
         <activity
-            android:name=".presentation.ui.activity.user.CatalogoActivity"
+            android:name=".presentation.ui.activity.user.HomeUserActivity"
             android:exported="false" />
         <activity
             android:name=".presentation.ui.activity.admin.HomeAdminActivity"

@@ -11,6 +11,9 @@ class AuthRepositoryImpl(
     suspend fun login(username: String, password: String): LoginResponse {
         val response = api.login(LoginRequest(username, password))
         prefs.saveTokens(response.accessToken, response.refreshToken)
+        response.user.apply {
+            prefs.saveUserInfo(username, roles, profileFotoUrl)
+        }
         return response
     }
 }
