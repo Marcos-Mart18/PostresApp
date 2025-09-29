@@ -2,24 +2,34 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
-        android:usesCleartextTraffic="true"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.PostresAPP">
+        android:theme="@style/Theme.PostresAPP"
+        android:usesCleartextTraffic="true">
+        <activity
+            android:name=".presentation.ui.activity.admin.AgregarProductoActivity"
+            android:exported="false" />
         <activity
             android:name=".presentation.ui.activity.user.CatalogoActivity"
             android:exported="false" />
         <activity
             android:name=".presentation.ui.activity.admin.HomeAdminActivity"
-            android:exported="false" />
+            android:exported="true" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+        </activity>
         <activity
             android:name=".presentation.ui.activity.auth.LoginActivity"
             android:exported="false"
@@ -30,13 +40,9 @@
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".presentation.ui.activity.SplashActivity"
-            android:exported="true"
+            android:exported="false"
             android:windowSoftInputMode="adjustResize">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
 
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
         </activity>
         <activity
             android:name=".MainActivity"
