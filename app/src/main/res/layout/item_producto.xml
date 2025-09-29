@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="@color/morado"
+    android:background="@drawable/bg_outline_product"
     android:padding="8dp"
     app:cardCornerRadius="8dp"
     android:layout_margin="6dp">
@@ -13,7 +13,7 @@
         android:layout_width="match_parent"
         android:layout_height="140dp"
         android:scaleType="centerCrop"
-        android:background="@color/white" />
+        android:background="@drawable/bg_outline" />
 
     <TextView
         android:id="@+id/tvNombre"

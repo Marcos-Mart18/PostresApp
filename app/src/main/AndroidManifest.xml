@@ -14,22 +14,19 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PostresAPP"
         android:usesCleartextTraffic="true">
+        
         <activity
             android:name=".presentation.ui.activity.admin.AgregarProductoActivity"
+            android:exported="false" />
+        <activity
+            android:name=".presentation.ui.activity.SideActivity" 
             android:exported="false" />
         <activity
             android:name=".presentation.ui.activity.user.CatalogoActivity"
             android:exported="false" />
         <activity
             android:name=".presentation.ui.activity.admin.HomeAdminActivity"
-            android:exported="true" >
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-
-        </activity>
+            android:exported="false" />
         <activity
             android:name=".presentation.ui.activity.auth.LoginActivity"
             android:exported="false"
@@ -40,9 +37,13 @@
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".presentation.ui.activity.SplashActivity"
-            android:exported="false"
+            android:exported="true"
             android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
 
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
         </activity>
         <activity
             android:name=".MainActivity"
