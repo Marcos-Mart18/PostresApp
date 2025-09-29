@@ -1,35 +1,65 @@
-<?xml version="1.0" encoding="utf-8"?>
-<menu
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     tools:showIn="navigation_view">
 
-    <group android:checkableBehavior="single">
+    <group
+        android:checkableBehavior="single">
         <item
-            android:id="@+id/nav_home"
+            android:id="@+id/home"
             android:icon="@drawable/ic_home"
-            android:title="Home" />
+            android:title="Home"/>
 
         <item
-            android:id="@+id/nav_carrito"
+            android:id="@+id/carrito"
             android:icon="@drawable/ic_carrito"
-            android:title="Carrito" />
+            android:title="Carrito"/>
 
         <item
-            android:id="@+id/nav_favoritos"
-            android:icon="@drawable/ic_favorito"
-            android:title="Favoritos" />
+            android:id="@+id/favorito"
+            android:icon="@drawable/ic_star"
+            android:title="Favoritos"/>
 
         <item
-            android:id="@+id/nav_notificaciones"
+            android:id="@+id/notificacion"
             android:icon="@drawable/ic_notificacion"
-            android:title="Notificaciones" />
-
-        <item
-            android:id="@+id/nav_logout"
-            android:icon="@drawable/ic_salir"
-            android:title="Cerrar sesión" />
-
+            android:title="Notificaciones"/>
     </group>
 
+    <item
+        android:id="@+id/espaciador"
+        android:title=""
+        android:enabled="false" />
+    <item
+        android:id="@+id/espaciador2"
+        android:title=""
+        android:enabled="false" />
+    <item
+        android:id="@+id/espaciador3"
+        android:title=""
+        android:enabled="false" />
+    <item
+        android:id="@+id/espaciador4"
+        android:title=""
+        android:enabled="false" />
+    <item
+        android:id="@+id/espaciador5"
+        android:title=""
+        android:enabled="false" />
+    <item
+        android:id="@+id/espaciador6"
+        android:title=""
+        android:enabled="false" />
+    <item
+        android:id="@+id/espaciador7"
+        android:title=""
+        android:enabled="false" />
+
+
+    <!-- Cerrar sesión como item normal, sin submenú -->
+    <item
+
+        android:id="@+id/salir"
+        android:icon="@drawable/ic_salir"
+        android:title="Cerrar Sesión" />
 </menu>
