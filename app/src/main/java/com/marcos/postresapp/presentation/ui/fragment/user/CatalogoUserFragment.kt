@@ -1,74 +1,80 @@
-package com.marcos.postresapp.presentation.ui.activity.user
+package com.marcos.postresapp.presentation.ui.fragment.user
 
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager2.widget.ViewPager2
 import com.marcos.postresapp.R
 import com.marcos.postresapp.data.remote.api.CategoriaApiService
 import com.marcos.postresapp.data.remote.api.NetworkClient
 import com.marcos.postresapp.data.remote.api.ProductoApiService
 import com.marcos.postresapp.domain.model.Categoria
-import com.marcos.postresapp.presentation.ui.adapter.CategoriaAdapter
-import com.marcos.postresapp.presentation.ui.adapter.ProductoAdapter
-import com.marcos.postresapp.presentation.ui.adapter.ImageAdapter
-import kotlinx.coroutines.launch
-import androidx.viewpager2.widget.ViewPager2
 import com.marcos.postresapp.domain.model.Producto
+import com.marcos.postresapp.presentation.ui.adapter.CategoriaAdapter
+import com.marcos.postresapp.presentation.ui.adapter.ImageAdapter
+import com.marcos.postresapp.presentation.ui.adapter.ProductoAdapter
+import kotlinx.coroutines.launch
 
-class CatalogoActivity : AppCompatActivity() {
+class CatalogoUserFragment : Fragment() {
+
     private lateinit var rvProductos: RecyclerView
     private lateinit var rvCategorias: RecyclerView
     private lateinit var viewPager: ViewPager2
-
     private lateinit var productoAdapter: ProductoAdapter
     private lateinit var categoriaAdapter: CategoriaAdapter
 
     private val productApiService = NetworkClient.retrofit.create(ProductoApiService::class.java)
     private val categoriaApiService = NetworkClient.retrofit.create(CategoriaApiService::class.java)
 
-    private val handler = Handler(Looper.getMainLooper())
     private var currentPage = 0  // Página actual para el carrusel
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContentView(R.layout.activity_catalogo)
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        // Inflar el layout para el fragmento
+        val rootView = inflater.inflate(R.layout.fragment_catalogo_user, container, false)
 
         // Inicializando RecyclerView de productos
-        rvProductos = findViewById(R.id.rvProductos)
-        rvProductos.layoutManager = GridLayoutManager(this, 2)
+        rvProductos = rootView.findViewById(R.id.rvProductos)
+        rvProductos.layoutManager = GridLayoutManager(requireContext(), 2)
         productoAdapter = ProductoAdapter(emptyList())
         rvProductos.adapter = productoAdapter
 
         // Inicializando RecyclerView de categorías
-        rvCategorias = findViewById(R.id.rvCategorias)
+        rvCategorias = rootView.findViewById(R.id.rvCategorias)
         rvCategorias.layoutManager =
-            LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+            LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         categoriaAdapter = CategoriaAdapter(emptyList()) { categoria ->
             filtrarPorCategoria(categoria)
         }
         rvCategorias.adapter = categoriaAdapter
 
         // Inicializando el ViewPager2 para el carrusel de imágenes
-        viewPager = findViewById(R.id.viewPager)
-
-        cargarProductos()
-        cargarCategorias()
+        viewPager = rootView.findViewById(R.id.viewPager)
 
         // Configuración del chip "Todos"
-        val chipTodos = findViewById<LinearLayout>(R.id.chipTodos)
+        val chipTodos: LinearLayout = rootView.findViewById(R.id.chipTodos)
         chipTodos.setOnClickListener {
             mostrarTodosLosProductos()
         }
+
+        // Cargar productos y categorías
+        cargarProductos()
+        cargarCategorias()
+
+        return rootView
     }
 
     // Cargar productos y actualizar el RecyclerView
@@ -82,8 +88,8 @@ class CatalogoActivity : AppCompatActivity() {
                 cargarFotosCarrusel(productos)
 
             } catch (e: Exception) {
-                Log.e("CatalogoActivity", "Error cargando productoszzzzzz", e)
-                Toast.makeText(this@CatalogoActivity, "Error cargando productos", Toast.LENGTH_LONG).show()
+                Log.e("CatalogoUserFragment", "Error cargando productos", e)
+                Toast.makeText(requireContext(), "Error cargando productos", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -102,8 +108,8 @@ class CatalogoActivity : AppCompatActivity() {
                 val categorias = categoriaApiService.getCategorias()
                 categoriaAdapter.actualizarLista(categorias)
             } catch (e: Exception) {
-                Log.e("CatalogoActivity", "Error cargando categorías", e)
-                Toast.makeText(this@CatalogoActivity, "Error cargando categorías", Toast.LENGTH_SHORT).show()
+                Log.e("CatalogoUserFragment", "Error cargando categorías", e)
+                Toast.makeText(requireContext(), "Error cargando categorías", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -116,8 +122,8 @@ class CatalogoActivity : AppCompatActivity() {
                 val filtrados = productos.filter { it.categoria?.idCategoria == categoria.idCategoria }
                 productoAdapter.actualizarLista(filtrados)
             } catch (e: Exception) {
-                Log.e("CatalogoActivity", "Error filtrando productos", e)
-                Toast.makeText(this@CatalogoActivity, "Error al filtrar productos", Toast.LENGTH_SHORT).show()
+                Log.e("CatalogoUserFragment", "Error filtrando productos", e)
+                Toast.makeText(requireContext(), "Error al filtrar productos", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -129,8 +135,8 @@ class CatalogoActivity : AppCompatActivity() {
                 val productos = productApiService.getProductos()
                 productoAdapter.actualizarLista(productos)
             } catch (e: Exception) {
-                Log.e("CatalogoActivity", "Error cargando productos", e)
-                Toast.makeText(this@CatalogoActivity, "Error cargando productos", Toast.LENGTH_LONG).show()
+                Log.e("CatalogoUserFragment", "Error cargando productos", e)
+                Toast.makeText(requireContext(), "Error cargando productos", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -155,15 +161,10 @@ class CatalogoActivity : AppCompatActivity() {
                 }
 
                 viewPager.setCurrentItem(currentPage, true)
-                handler.postDelayed(this, 3000)  // Cambia la página cada 3 segundos
+                Handler(Looper.getMainLooper()).postDelayed(this, 3000)  // Cambia la página cada 3 segundos
             }
         }
 
-        handler.post(runnable)  // Inicia el desplazamiento automático
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        handler.removeCallbacksAndMessages(null)  // Detener el carrusel cuando la actividad se destruya
+        Handler(Looper.getMainLooper()).post(runnable)  // Inicia el desplazamiento automático
     }
 }

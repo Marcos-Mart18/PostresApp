@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/adminMain"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFFFFF"
+    android:orientation="vertical"
+    tools:context=".presentation.ui.fragment.admin.CatalogoAdminFragment">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="12dp"
+            android:gravity="center">
+
+            <!-- Hola / subtítulo (siempre visible) -->
+            <TextView
+                android:id="@+id/tvHola"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Hola, Admin123"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:textColor="@color/black"/>
+
+            <TextView
+                android:id="@+id/tvSubtitulo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Agregar Postres"
+                android:textSize="12sp"
+                android:textColor="@color/gris"/>
+
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:layout_margin="6dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:gravity="center"
+                    android:background="@drawable/bg_chip_selector"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackgroundBorderless"
+                    android:id="@+id/chipTodos">
+
+                    <TextView
+                        android:id="@+id/tvTodos"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:text="Todos"
+                        android:textColor="@color/color_chip_text"
+                        android:textSize="13sp"/>
+                </LinearLayout>
+
+                <!-- RecyclerView de categorías -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvCategorias"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:overScrollMode="never"
+                    android:scrollbars="none"
+                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                    android:orientation="horizontal" />
+            </LinearLayout>
+
+            <!-- Tarjeta + Agregar (siempre visible) -->
+            <LinearLayout
+                android:id="@+id/cardAgregar"
+                android:layout_width="match_parent"
+                android:layout_height="110dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_card_agregar"
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="+ Agregar nuevo producto"
+                    android:textColor="@color/morado"
+                    android:textStyle="bold"/>
+            </LinearLayout>
+
+            <!-- ====== FORMULARIO (arranca oculto) ====== -->
+            <LinearLayout
+                android:id="@+id/panelForm"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:visibility="gone"
+                android:background="@android:color/transparent">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="12dp"
+                    android:orientation="vertical"
+                    android:background="@drawable/bg_outline_product">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="120dp"
+                            android:layout_height="120dp"
+                            android:background="@drawable/bg_card_outline"
+                            android:gravity="center"
+                            android:layout_marginEnd="12dp">
+
+                            <Button
+                                android:id="@+id/btnSelectImage"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Seleccionar imagen" />
+
+                            <!-- ImageView para mostrar la imagen seleccionada -->
+                            <ImageView
+                                android:id="@+id/imgProducto"
+                                android:layout_width="match_parent"
+                                android:layout_height="200dp"
+                                android:scaleType="centerCrop"
+                                android:src="@drawable/ic_image_placeholder"/>
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="120dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Descripción:"
+                                android:textColor="@color/white"
+                                android:textStyle="bold"/>
+
+                            <EditText
+                                android:id="@+id/etDescripcion"
+                                android:layout_width="match_parent"
+                                android:layout_height="0dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_input"
+                                android:hint="Nueva descripción"
+                                android:textSize="14sp"
+                                android:padding="12dp"
+                                android:gravity="top|start"
+                                android:maxLines="5"/>
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Nombre -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="Nombre:"
+                        android:textColor="@color/white"
+                        android:textStyle="bold"/>
+
+                    <EditText
+                        android:id="@+id/etNombre"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:background="@drawable/bg_input"
+                        android:hint="Nombre"
+                        android:textSize="14sp"
+                        android:padding="12dp"/>
+
+                    <!-- Precio -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="Precio:"
+                        android:textColor="@color/white"
+                        android:textStyle="bold"/>
+
+                    <EditText
+                        android:id="@+id/etPrecio"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:background="@drawable/bg_input"
+                        android:hint="Precio"
+                        android:inputType="numberDecimal"
+                        android:textSize="14sp"
+                        android:padding="12dp"/>
+
+                    <!-- Categoría -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="Categoría:"
+                        android:textColor="@color/white"
+                        android:textStyle="bold"/>
+
+                    <Spinner
+                        android:id="@+id/spCategoria"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:background="@drawable/bg_input"/>
+
+                    <!-- Botones -->
+                    <LinearLayout
+                        android:orientation="horizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:layout_marginTop="16dp">
+
+                        <!-- Botón Cancelar -->
+                        <Button
+                            android:id="@+id/btnCancel"
+                            style="@style/btn_cancel_desing"
+                            android:layout_width="120dp"
+                            android:layout_height="55dp"
+                            android:text="Cancel"
+                            android:textColor="@color/white"
+                            android:textStyle="bold" />
+
+                        <!-- Espaciado entre los botones -->
+                        <Space
+                            android:layout_width="16dp"
+                            android:layout_height="match_parent" />
+
+                        <!-- Botón Crear -->
+                        <Button
+                            android:id="@+id/btnCrear"
+                            style="@style/btn_primary"
+                            android:layout_width="120dp"
+                            android:layout_height="55dp"
+                            android:text="Crear"
+                            android:textColor="@color/white"
+                            android:textStyle="bold" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+            </LinearLayout>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/adProductos"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                tools:listitem="@layout/item_producto_admin" />
+
+        </LinearLayout>
+    </ScrollView>
+
+</LinearLayout>

@@ -9,19 +9,22 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.textfield.TextInputEditText
 import com.marcos.postresapp.R
-import com.marcos.postresapp.presentation.ui.activity.user.CatalogoActivity
+import com.marcos.postresapp.presentation.ui.activity.user.HomeUserActivity
+import com.marcos.postresapp.presentation.ui.activity.admin.HomeAdminActivity
+import com.marcos.postresapp.presentation.ui.activity.repartidor.HomeRepartidorActivity
 import com.marcos.postresapp.presentation.viewmodel.LoginViewModel
 import com.marcos.postresapp.presentation.viewmodel.LoginViewModelFactory
+import com.marcos.postresapp.data.local.PrefsManager
 
 class LoginActivity : AppCompatActivity() {
 
-    // ViewModel creado para esta Activity
     private val loginViewModel: LoginViewModel by viewModels { LoginViewModelFactory(this) }
 
-    // Declaración de las vistas
     private lateinit var txtUsuario: TextInputEditText
     private lateinit var txtContrasena: TextInputEditText
     private lateinit var btnGoMain: Button
+
+    private lateinit var prefsManager: PrefsManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,7 +36,9 @@ class LoginActivity : AppCompatActivity() {
         txtContrasena = findViewById(R.id.txtContrasena)
         btnGoMain = findViewById(R.id.btnGoMain)
 
-        // Acción del botón "Aceptar"
+        // Inicialización de PrefsManager
+        prefsManager = PrefsManager(this)
+
         btnGoMain.setOnClickListener {
             val username = txtUsuario.text.toString()
             val password = txtContrasena.text.toString()
@@ -43,18 +48,38 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    // loginUser en LoginActivity
     private fun loginUser(username: String, password: String) {
-        // Verificar que los campos no estén vacíos
         if (username.isNotEmpty() && password.isNotEmpty()) {
             loginViewModel.login(
                 username,
                 password,
-                onSuccess = { message ->  // 'message' es un saludo con el nombre del usuario
+                onSuccess = { message ->
                     Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-                    val intent = Intent(this, CatalogoActivity::class.java)
-                    startActivity(intent)
-                    finish()  // Para que no se pueda volver a la pantalla de login
+
+                    // Obtenemos el rol del usuario desde PrefsManager
+                    val roles = prefsManager.getRoles()
+
+                    // Redirigir según el rol
+                    when {
+                        "ADMIN" in roles -> {
+                            // Redirigir a la vista de administrador
+                            val intent = Intent(this, HomeAdminActivity::class.java)
+                            startActivity(intent)
+                            finish()
+                        }
+                        "REPARTIDOR" in roles -> {
+                            // Redirigir a la vista de repartidor
+                            val intent = Intent(this, HomeRepartidorActivity::class.java)
+                            startActivity(intent)
+                            finish()
+                        }
+                        else -> {
+                            // Redirigir a la vista del usuario (Cliente)
+                            val intent = Intent(this, HomeUserActivity::class.java)
+                            startActivity(intent)
+                            finish()
+                        }
+                    }
                 },
                 onError = { error ->
                     // Mostrar mensaje de error si ocurre algo al hacer login
@@ -66,5 +91,4 @@ class LoginActivity : AppCompatActivity() {
             Toast.makeText(this, "Por favor ingresa usuario y contraseña", Toast.LENGTH_SHORT).show()
         }
     }
-
 }

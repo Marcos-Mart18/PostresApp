@@ -11,6 +11,25 @@ class PrefsManager(context: Context) {
         }
     }
 
+    fun saveAccessToken(token: String) {
+        prefs.edit().apply {
+            putString("ACCESS_TOKEN", token)
+            apply()
+        }
+    }
+
+    fun saveUserInfo(username: String, roles: List<String>, profileFotoUrl: String?) {
+        prefs.edit().apply {
+            putString("USERNAME", username)
+            putString("ROLES", roles.joinToString(","))
+            putString("PROFILE_FOTO_URL", profileFotoUrl)
+            apply()
+        }
+    }
+    fun getUsername(): String? = prefs.getString("USERNAME", null)
+    fun getRoles(): List<String> = prefs.getString("ROLES", "")?.split(",") ?: emptyList()
+    fun getProfileFotoUrl(): String? = prefs.getString("PROFILE_FOTO_URL", null)
+
     fun getAccessToken(): String? = prefs.getString("ACCESS_TOKEN", null)
     fun getRefreshToken(): String? = prefs.getString("REFRESH_TOKEN", null)
 }
