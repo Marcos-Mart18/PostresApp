@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -212,8 +213,10 @@ class CatalogoAdminFragment : Fragment() {
                 Toast.makeText(requireContext(), "Error HTTP: ${e.message()} ${e.code()}", Toast.LENGTH_SHORT).show()
             } catch (e: IOException) {
                 Toast.makeText(requireContext(), "Error de red: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                Log.e("Catalogofragment", "Error de red: ${e.localizedMessage}", e)
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), "Error al crear producto: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                Log.e("Catalogofragment", "Error al crear producto: ${e.localizedMessage}", e)
             }
         }
     }
