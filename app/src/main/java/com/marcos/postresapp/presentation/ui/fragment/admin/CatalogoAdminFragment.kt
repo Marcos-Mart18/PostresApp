@@ -28,6 +28,7 @@ import com.marcos.postresapp.domain.dto.ProductoDTO
 import com.marcos.postresapp.domain.model.Categoria
 import com.marcos.postresapp.presentation.ui.adapter.CategoriaAdapter
 import com.marcos.postresapp.presentation.ui.adapter.ProductoAdapterAdmin
+import com.google.gson.Gson
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -193,12 +194,16 @@ class CatalogoAdminFragment : Fragment() {
             return
         }
 
+        // Convertir ProductoDTO a JSON y crear RequestBody
+        val productoJson = Gson().toJson(producto)
+        val productoRequestBody = RequestBody.create("application/json".toMediaTypeOrNull(), productoJson)
+
         val requestBody = RequestBody.create("image/*".toMediaTypeOrNull(), file)
         val filePart = MultipartBody.Part.createFormData("file", file.name, requestBody)
 
         lifecycleScope.launch {
             try {
-                val response = productApiService.createProductoWithImage(producto, filePart)
+                val response = productApiService.createProductoWithImage(productoRequestBody, filePart)
                 Toast.makeText(requireContext(), "Producto creado con éxito", Toast.LENGTH_SHORT).show()
                 cargarProductos()
                 rvProductos.visibility = View.GONE
@@ -255,6 +260,3 @@ class CatalogoAdminFragment : Fragment() {
         private const val IMAGE_PICK_REQUEST = 1
     }
 }
-
-
-
