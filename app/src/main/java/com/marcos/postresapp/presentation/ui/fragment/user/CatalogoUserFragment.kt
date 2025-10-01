@@ -16,9 +16,12 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.marcos.postresapp.R
+import com.marcos.postresapp.data.local.PrefsManager
+import com.marcos.postresapp.data.remote.api.AuthApiService
 import com.marcos.postresapp.data.remote.api.CategoriaApiService
 import com.marcos.postresapp.data.remote.api.NetworkClient
 import com.marcos.postresapp.data.remote.api.ProductoApiService
+import com.marcos.postresapp.data.repository.AuthRepositoryImpl
 import com.marcos.postresapp.domain.model.Categoria
 import com.marcos.postresapp.domain.model.Producto
 import com.marcos.postresapp.presentation.ui.adapter.CategoriaAdapter
@@ -34,8 +37,8 @@ class CatalogoUserFragment : Fragment() {
     private lateinit var productoAdapter: ProductoAdapter
     private lateinit var categoriaAdapter: CategoriaAdapter
 
-    private val productApiService = NetworkClient.retrofit.create(ProductoApiService::class.java)
-    private val categoriaApiService = NetworkClient.retrofit.create(CategoriaApiService::class.java)
+    private lateinit var productApiService: ProductoApiService
+    private lateinit var categoriaApiService: CategoriaApiService
 
     private var currentPage = 0  // Página actual para el carrusel
 
@@ -43,8 +46,17 @@ class CatalogoUserFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        // Inflar el layout para el fragmento
         val rootView = inflater.inflate(R.layout.fragment_catalogo_user, container, false)
+
+        // 🔑 Inicializar PrefsManager y AuthRepository
+        val prefsManager = PrefsManager(requireContext())
+        val authApiService = NetworkClient.createBasic().create(AuthApiService::class.java)
+        val authRepository = AuthRepositoryImpl(authApiService, prefsManager)
+
+        // Retrofit con interceptor
+        val retrofitProtected = NetworkClient.create(prefsManager, authRepository)
+        productApiService = retrofitProtected.create(ProductoApiService::class.java)
+        categoriaApiService = retrofitProtected.create(CategoriaApiService::class.java)
 
         // Inicializando RecyclerView de productos
         rvProductos = rootView.findViewById(R.id.rvProductos)

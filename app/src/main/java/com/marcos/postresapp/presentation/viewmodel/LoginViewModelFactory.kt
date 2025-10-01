@@ -16,7 +16,7 @@ class LoginViewModelFactory(private val context: Context) : ViewModelProvider.Fa
             val prefsManager = PrefsManager(context)
 
             // Crear la instancia de AuthApiService usando Retrofit
-            val retrofit = NetworkClient.retrofit // Usamos el Retrofit creado en NetworkClient
+            val retrofit = NetworkClient.createBasic() // Usamos el Retrofit creado en NetworkClient
             val authApiService = retrofit.create(AuthApiService::class.java) // Crear la instancia de AuthApiService
 
             // Ahora podemos pasar authApiService junto con prefsManager a NetworkClient

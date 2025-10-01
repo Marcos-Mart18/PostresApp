@@ -18,6 +18,16 @@ class PrefsManager(context: Context) {
         }
     }
 
+    fun clearUserData() {
+        prefs.edit()
+            .remove("ACCESS_TOKEN")
+            .remove("REFRESH_TOKEN")
+            .remove("USERNAME")
+            .remove("USERNAME")
+            .remove("PROFILE_FOTO_URL")
+            .apply()
+    }
+
     fun saveUserInfo(username: String, roles: List<String>, profileFotoUrl: String?) {
         prefs.edit().apply {
             putString("USERNAME", username)

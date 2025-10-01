@@ -18,6 +18,6 @@ interface ProductoApiService {
     @POST("api/v1/productos/createWithImage")
     suspend fun createProductoWithImage(
         @Part("producto") producto: RequestBody, // Enviamos el objeto ProductoDTO como RequestBody
-        @Part("file") file: MultipartBody.Part  // Enviamos el archivo como Multipart
+        @Part file: MultipartBody.Part  // Enviamos el archivo como Multipart
     ): Producto
 }
