@@ -8,7 +8,6 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
@@ -30,6 +29,9 @@ import com.marcos.postresapp.domain.model.Categoria
 import com.marcos.postresapp.presentation.ui.adapter.CategoriaAdapter
 import com.marcos.postresapp.presentation.ui.adapter.ProductoAdapterAdmin
 import com.google.gson.Gson
+import com.marcos.postresapp.data.local.PrefsManager
+import com.marcos.postresapp.data.remote.api.AuthApiService
+import com.marcos.postresapp.data.repository.AuthRepositoryImpl
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -45,8 +47,8 @@ class CatalogoAdminFragment : Fragment() {
     private lateinit var productoAdapter: ProductoAdapterAdmin
     private lateinit var categoriaAdapter: CategoriaAdapter
 
-    private val productApiService = NetworkClient.retrofit.create(ProductoApiService::class.java)
-    private val categoriaApiService = NetworkClient.retrofit.create(CategoriaApiService::class.java)
+    private lateinit var productApiService: ProductoApiService
+    private lateinit var categoriaApiService: CategoriaApiService
 
     private lateinit var cardAgregar: View
     private lateinit var panelForm: View
@@ -69,11 +71,22 @@ class CatalogoAdminFragment : Fragment() {
     ): View? {
         val rootView = inflater.inflate(R.layout.fragment_catalogo_admin, container, false)
 
+        // 🔑 Inicializar PrefsManager y AuthRepository
+        val prefsManager = PrefsManager(requireContext())
+        val authApiService = NetworkClient.createBasic().create(AuthApiService::class.java)
+        val authRepository = AuthRepositoryImpl(authApiService, prefsManager)
+
+        // Retrofit con interceptor
+        val retrofitProtected = NetworkClient.create(prefsManager, authRepository)
+        productApiService = retrofitProtected.create(ProductoApiService::class.java)
+        categoriaApiService = retrofitProtected.create(CategoriaApiService::class.java)
+
+        // Inicializar vistas
         cardAgregar = rootView.findViewById(R.id.cardAgregar)
         panelForm = rootView.findViewById(R.id.panelForm)
         rvProductos = rootView.findViewById(R.id.adProductos)
         btnCrear = rootView.findViewById(R.id.btnCrear)
-        btnUploadImage = rootView.findViewById<Button>(R.id.btnSelectImage)
+        btnUploadImage = rootView.findViewById(R.id.btnSelectImage)
         btnCancel = rootView.findViewById(R.id.btnCancel)
 
         etNombre = rootView.findViewById(R.id.etNombre)
@@ -113,7 +126,7 @@ class CatalogoAdminFragment : Fragment() {
             val descripcion = etDescripcion.text.toString()
 
             if (nombre.isNotEmpty() && precio > 0 && descripcion.isNotEmpty() && imageUri != null) {
-                val categoriaSeleccionada = spCategoria.selectedItem as Categoria // Obtener categoría seleccionada
+                val categoriaSeleccionada = spCategoria.selectedItem as Categoria
                 crearProducto(nombre, precio, descripcion, categoriaSeleccionada.idCategoria)
             } else {
                 Toast.makeText(requireContext(), "Por favor llena todos los campos", Toast.LENGTH_SHORT).show()

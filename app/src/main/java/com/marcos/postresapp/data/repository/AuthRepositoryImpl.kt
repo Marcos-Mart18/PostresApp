@@ -4,6 +4,7 @@ import com.marcos.postresapp.data.local.PrefsManager
 import com.marcos.postresapp.data.remote.api.AuthApiService
 import com.marcos.postresapp.data.remote.models.LoginRequest
 import com.marcos.postresapp.data.remote.models.LoginResponse
+import com.marcos.postresapp.data.remote.models.RefreshTokenRequest
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody
 
@@ -20,27 +21,39 @@ class AuthRepositoryImpl(
         return response
     }
 
-    private suspend fun refreshAccessToken(refreshToken: String): String {
-        // Crear el body de la solicitud con el refresh token
-        val refreshTokenRequestBody = RequestBody.create(
-            "application/x-www-form-urlencoded".toMediaTypeOrNull(),
-            "refresh_token=$refreshToken"
-        )
-
+    suspend fun refreshAccessToken(refreshToken: String): String {
         try {
-            // Realizar la solicitud al servidor para obtener un nuevo access token
-            val response = api.refreshAccessToken(refreshTokenRequestBody)
+            // Crear el objeto del request
+            val refreshRequest = RefreshTokenRequest(refreshToken)
 
-            // Suponiendo que la respuesta contiene el nuevo token en formato JSON
-            val newAccessToken = response.accessToken // Asumiendo que la respuesta tiene un campo 'accessToken'
+            // Llamar directamente al API
+            val response = api.refreshAccessToken(refreshRequest)
 
-            // Guardar el nuevo token en PrefsManager
-            prefs.saveAccessToken(newAccessToken)
-
-            return newAccessToken
+            // Retornar el nuevo access token
+            return response.accessToken
         } catch (e: Exception) {
-            // Manejar errores si no se puede refrescar el token (por ejemplo, si el refresh token también ha expirado)
-            throw e
+            throw Exception("Error refreshing access token", e)
+        }
+    }
+
+
+
+    suspend fun logout(): Result<Unit> {
+        return try {
+            val refreshToken = prefs.getRefreshToken() ?: throw Exception("Refresh token no disponible")
+
+            val requestBody = mapOf("refreshToken" to refreshToken)
+
+            api.logout(request = requestBody)
+
+            // 3. Limpiar los tokens y otros datos de la aplicación
+            prefs.clearUserData()
+
+            // 4. Retornar un resultado exitoso
+            Result.success(Unit)
+        } catch (e: Exception) {
+            // Si ocurre un error, puedes manejarlo aquí y devolver un resultado con error
+            Result.failure(e)
         }
     }
 

@@ -1,23 +1,44 @@
 package com.marcos.postresapp.data.remote.api
 
-import android.util.Log
 import com.marcos.postresapp.data.local.PrefsManager
-import com.marcos.postresapp.data.remote.models.RefreshTokenRequest
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import com.marcos.postresapp.data.repository.AuthRepositoryImpl
+import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
-import okhttp3.RequestBody
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object NetworkClient {
 
-    private const val BASE_URL = "http://10.40.34.164:9090/"
+    private const val BASE_URL = "http://192.168.18.97:9090/"
 
-    // Interceptor para agregar el token en el header de cada solicitud
-    private fun provideOkHttpClient(prefsManager: PrefsManager, authApiService: AuthApiService): OkHttpClient {
+    // Retrofit sin interceptor (para login, refresh y logout)
+    fun createBasic(): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    // Retrofit con interceptor (para servicios protegidos con token)
+    fun create(
+        prefsManager: PrefsManager,
+        authRepository: AuthRepositoryImpl
+    ): Retrofit {
+        val client = provideOkHttpClient(prefsManager, authRepository)
+
+        return Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(client)  // Cliente con interceptor de token
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    // Cliente con logging + manejo automático de refresh token
+    private fun provideOkHttpClient(
+        prefsManager: PrefsManager,
+        authRepository: AuthRepositoryImpl
+    ): OkHttpClient {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
@@ -28,6 +49,7 @@ object NetworkClient {
                 val token = prefsManager.getAccessToken()
                 var request = chain.request()
 
+                // 👉 Añadir el accessToken al header si existe
                 if (token != null) {
                     request = request.newBuilder()
                         .addHeader("Authorization", "Bearer $token")
@@ -36,39 +58,35 @@ object NetworkClient {
 
                 var response = chain.proceed(request)
 
-                // Si obtenemos un error 401 (token expirado), intentar refrescar el token
+                // 👉 Si obtenemos un error 401, intentamos refrescar el token
                 if (response.code == 401) {
                     val refreshToken = prefsManager.getRefreshToken()
 
-                    // Si tenemos un refresh token, intentar obtener un nuevo access token
                     if (refreshToken != null) {
-                        // Aquí solo retornamos el estado de error 401, el refresco se hará fuera del interceptor
-                        throw TokenExpiredException("Token expired, please refresh the token")
+                        try {
+                            // 🔄 Llamamos a AuthRepositoryImpl.refreshAccessToken()
+                            val newAccessToken = runBlocking {
+                                authRepository.refreshAccessToken(refreshToken)
+                            }
+
+                            // Guardamos el nuevo token en PrefsManager
+                            prefsManager.saveAccessToken(newAccessToken)
+
+                            // Reintentamos la petición original con el nuevo token
+                            request = request.newBuilder()
+                                .addHeader("Authorization", "Bearer $newAccessToken")
+                                .build()
+
+                            response.close()
+                            response = chain.proceed(request)
+                        } catch (e: Exception) {
+                            throw TokenExpiredException("No se pudo refrescar el token")
+                        }
                     }
                 }
 
                 response
             }
-            .build()
-    }
-
-
-
-    val retrofit: Retrofit by lazy {
-        Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-    }
-
-    // Crear instancia de Retrofit con OkHttpClient
-    fun create(prefsManager: PrefsManager, authApiService: AuthApiService): Retrofit {
-        val client = provideOkHttpClient(prefsManager, authApiService)
-
-        return Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .client(client)  // Usamos el cliente con interceptor
-            .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
 }
