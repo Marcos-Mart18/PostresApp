@@ -93,6 +93,7 @@ class CatalogoAdminFragment : Fragment() {
         etPrecio = rootView.findViewById(R.id.etPrecio)
         etDescripcion = rootView.findViewById(R.id.etDescripcion)
         imgProducto = rootView.findViewById(R.id.imgProducto)
+        imgProducto.setImageResource(R.drawable.ic_image_placeholder)
         spCategoria = rootView.findViewById(R.id.spCategoria)
 
         cardAgregar.setOnClickListener {
@@ -121,17 +122,18 @@ class CatalogoAdminFragment : Fragment() {
         }
 
         btnCrear.setOnClickListener {
-            val nombre = etNombre.text.toString()
-            val precio = etPrecio.text.toString().toDouble()
-            val descripcion = etDescripcion.text.toString()
+            val nombre = etNombre.text.toString().trim()
+            val precio = etPrecio.text.toString().toDoubleOrNull()
+            val descripcion = etDescripcion.text.toString().trim()
 
-            if (nombre.isNotEmpty() && precio > 0 && descripcion.isNotEmpty() && imageUri != null) {
+            if (nombre.isNotEmpty() && (precio != null && precio > 0) && descripcion.isNotEmpty() && imageUri != null) {
                 val categoriaSeleccionada = spCategoria.selectedItem as Categoria
                 crearProducto(nombre, precio, descripcion, categoriaSeleccionada.idCategoria)
             } else {
-                Toast.makeText(requireContext(), "Por favor llena todos los campos", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Por favor, completa todos los campos correctamente", Toast.LENGTH_SHORT).show()
             }
         }
+
 
         btnUploadImage.setOnClickListener {
             openImagePicker()
@@ -220,8 +222,7 @@ class CatalogoAdminFragment : Fragment() {
                 val response = productApiService.createProductoWithImage(productoRequestBody, filePart)
                 Toast.makeText(requireContext(), "Producto creado con éxito", Toast.LENGTH_SHORT).show()
                 cargarProductos()
-                rvProductos.visibility = View.GONE
-                panelForm.visibility = View.VISIBLE
+                resetForm()
             } catch (e: HttpException) {
                 Toast.makeText(requireContext(), "Error HTTP: ${e.message()} ${e.code()}", Toast.LENGTH_SHORT).show()
             } catch (e: IOException) {
@@ -275,4 +276,16 @@ class CatalogoAdminFragment : Fragment() {
     companion object {
         private const val IMAGE_PICK_REQUEST = 1
     }
+
+    private fun resetForm() {
+        etNombre.setText("")
+        etPrecio.setText("")
+        etDescripcion.setText("")
+        spCategoria.setSelection(0)
+        imageUri = null
+        imgProducto.setImageResource(R.drawable.ic_image_placeholder)
+        rvProductos.visibility = View.VISIBLE
+        panelForm.visibility = View.GONE
+    }
+
 }
