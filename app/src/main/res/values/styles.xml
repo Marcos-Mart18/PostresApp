@@ -40,4 +40,12 @@
         <item name="android:padding">12dp</item>
     </style>
 
+    <style name="MyAlertDialogTheme" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="buttonBarPositiveButtonStyle">@style/DialogPositiveButton</item>
+    </style>
+
+    <style name="DialogPositiveButton" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/verdePastel</item>
+    </style>
+
 </resources>
