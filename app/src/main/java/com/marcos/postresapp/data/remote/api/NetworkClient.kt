@@ -10,7 +10,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object NetworkClient {
 
-    private const val BASE_URL = "http://10.40.35.12:9090/"
+    private const val BASE_URL = "http://192.168.18.97:9090/"
 
     // Retrofit sin interceptor (para login, refresh y logout)
     fun createBasic(): Retrofit {

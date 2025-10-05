@@ -1,7 +1,7 @@
 package com.marcos.postresapp.domain.model
 
 data class Producto(
-    val idProducto: Int,
+    val idProducto: Long,
     val nombre: String,
     val precio: Double,
     val fotoUrl: String?,

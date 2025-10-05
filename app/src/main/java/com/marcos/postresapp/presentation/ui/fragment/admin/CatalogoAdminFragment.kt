@@ -20,18 +20,20 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder   // 👈 usar Material
 import com.marcos.postresapp.R
+import com.marcos.postresapp.data.local.PrefsManager
+import com.marcos.postresapp.data.remote.api.AuthApiService
 import com.marcos.postresapp.data.remote.api.CategoriaApiService
 import com.marcos.postresapp.data.remote.api.NetworkClient
 import com.marcos.postresapp.data.remote.api.ProductoApiService
+import com.marcos.postresapp.data.repository.AuthRepositoryImpl
 import com.marcos.postresapp.domain.dto.ProductoDTO
 import com.marcos.postresapp.domain.model.Categoria
+import com.marcos.postresapp.domain.model.Producto
 import com.marcos.postresapp.presentation.ui.adapter.CategoriaAdapter
 import com.marcos.postresapp.presentation.ui.adapter.ProductoAdapterAdmin
 import com.google.gson.Gson
-import com.marcos.postresapp.data.local.PrefsManager
-import com.marcos.postresapp.data.remote.api.AuthApiService
-import com.marcos.postresapp.data.repository.AuthRepositoryImpl
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -72,27 +74,23 @@ class CatalogoAdminFragment : Fragment() {
     ): View? {
         val rootView = inflater.inflate(R.layout.fragment_catalogo_admin, container, false)
 
-        // 🔑 Inicializar PrefsManager y AuthRepository
+        // 🔑 Prefs + Auth + Retrofit (interceptor)
         val prefsManager = PrefsManager(requireContext())
         val authApiService = NetworkClient.createBasic().create(AuthApiService::class.java)
         val authRepository = AuthRepositoryImpl(authApiService, prefsManager)
-
-        loadingOverlay = rootView.findViewById(R.id.loadingOverlay)
-        lottieLoader = rootView.findViewById(R.id.lottieLoader)
-
-        // Retrofit con interceptor
         val retrofitProtected = NetworkClient.create(prefsManager, authRepository)
         productApiService = retrofitProtected.create(ProductoApiService::class.java)
         categoriaApiService = retrofitProtected.create(CategoriaApiService::class.java)
 
-        // Inicializar vistas
+        // Views
+        loadingOverlay = rootView.findViewById(R.id.loadingOverlay)
+        lottieLoader = rootView.findViewById(R.id.lottieLoader)
         cardAgregar = rootView.findViewById(R.id.cardAgregar)
         panelForm = rootView.findViewById(R.id.panelForm)
         rvProductos = rootView.findViewById(R.id.adProductos)
         btnCrear = rootView.findViewById(R.id.btnCrear)
         btnUploadImage = rootView.findViewById(R.id.btnSelectImage)
         btnCancel = rootView.findViewById(R.id.btnCancel)
-
         etNombre = rootView.findViewById(R.id.etNombre)
         etPrecio = rootView.findViewById(R.id.etPrecio)
         etDescripcion = rootView.findViewById(R.id.etDescripcion)
@@ -100,31 +98,35 @@ class CatalogoAdminFragment : Fragment() {
         imgProducto.setImageResource(R.drawable.ic_image_placeholder)
         spCategoria = rootView.findViewById(R.id.spCategoria)
 
+        // Mostrar formulario
         cardAgregar.setOnClickListener {
             rvProductos.visibility = View.GONE
             panelForm.visibility = View.VISIBLE
         }
+        // Cancelar formulario
+        btnCancel.setOnClickListener { resetForm() }
 
-        btnCancel.setOnClickListener {
-            panelForm.visibility = View.GONE
-            rvProductos.visibility = View.VISIBLE
-        }
-
+        // Recycler de productos (adapter con callbacks)
         rvProductos.layoutManager = GridLayoutManager(requireContext(), 2)
-        productoAdapter = ProductoAdapterAdmin(emptyList())
+        productoAdapter = ProductoAdapterAdmin(
+            productos = mutableListOf(),
+            onLongPress = { producto, pos -> mostrarDialogoEliminar(producto, pos) },
+            onEditClick = { _, _ -> /* abre edición si lo necesitas */ }
+        )
         rvProductos.adapter = productoAdapter
 
+        // Recycler de categorías
         rvCategorias = rootView.findViewById(R.id.rvCategorias)
         rvCategorias.layoutManager =
             LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         categoriaAdapter = CategoriaAdapter(emptyList()) { categoria -> filtrarPorCategoria(categoria) }
         rvCategorias.adapter = categoriaAdapter
 
+        // Chip "Todos"
         val chipTodos: LinearLayout = rootView.findViewById(R.id.chipTodos)
-        chipTodos.setOnClickListener {
-            mostrarTodosLosProductos()
-        }
+        chipTodos.setOnClickListener { mostrarTodosLosProductos() }
 
+        // Crear producto
         btnCrear.setOnClickListener {
             val nombre = etNombre.text.toString().trim()
             val precio = etPrecio.text.toString().toDoubleOrNull()
@@ -138,10 +140,7 @@ class CatalogoAdminFragment : Fragment() {
             }
         }
 
-
-        btnUploadImage.setOnClickListener {
-            openImagePicker()
-        }
+        btnUploadImage.setOnClickListener { openImagePicker() }
 
         cargarProductos()
         cargarCategorias()
@@ -149,6 +148,7 @@ class CatalogoAdminFragment : Fragment() {
         return rootView
     }
 
+    /** Cargar productos */
     private fun cargarProductos() {
         lifecycleScope.launch {
             try {
@@ -160,22 +160,22 @@ class CatalogoAdminFragment : Fragment() {
         }
     }
 
+    /** Cargar categorías */
     private fun cargarCategorias() {
         lifecycleScope.launch {
             try {
                 val categorias = categoriaApiService.getCategorias()
-
                 categoriaAdapter.actualizarLista(categorias)
-
-                val categoriaAdapterSpinner = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, categorias)
-                categoriaAdapterSpinner.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-                spCategoria.adapter = categoriaAdapterSpinner
+                val spinnerAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, categorias)
+                spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                spCategoria.adapter = spinnerAdapter
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), "Error cargando categorías: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
+    /** Filtro por categoría */
     private fun filtrarPorCategoria(categoria: Categoria) {
         lifecycleScope.launch {
             try {
@@ -188,6 +188,7 @@ class CatalogoAdminFragment : Fragment() {
         }
     }
 
+    /** Mostrar todos los productos */
     private fun mostrarTodosLosProductos() {
         lifecycleScope.launch {
             try {
@@ -199,6 +200,7 @@ class CatalogoAdminFragment : Fragment() {
         }
     }
 
+    /** Crear producto */
     private fun crearProducto(nombre: String, precio: Double, descripcion: String, idCategoria: Int) {
         val producto = ProductoDTO(nombre, precio, descripcion, idCategoria)
 
@@ -206,7 +208,6 @@ class CatalogoAdminFragment : Fragment() {
             Toast.makeText(requireContext(), "No se ha seleccionado ninguna imagen.", Toast.LENGTH_SHORT).show()
             return
         }
-
         val file = getFileFromUri(imageUri)
         if (file == null || !file.exists()) {
             Toast.makeText(requireContext(), "El archivo de imagen no existe o no se pudo acceder.", Toast.LENGTH_SHORT).show()
@@ -215,14 +216,13 @@ class CatalogoAdminFragment : Fragment() {
 
         val productoJson = Gson().toJson(producto)
         val productoRequestBody = RequestBody.create("application/json".toMediaTypeOrNull(), productoJson)
-
         val requestBody = RequestBody.create("image/*".toMediaTypeOrNull(), file)
         val filePart = MultipartBody.Part.createFormData("file", file.name, requestBody)
 
         lifecycleScope.launch {
-            setLoading(true) // ✅ encender loader antes de la llamada
+            setLoading(true)
             try {
-                val response = productApiService.createProductoWithImage(productoRequestBody, filePart)
+                productApiService.createProductoWithImage(productoRequestBody, filePart)
                 Toast.makeText(requireContext(), "Producto creado con éxito", Toast.LENGTH_SHORT).show()
                 cargarProductos()
                 resetForm()
@@ -235,15 +235,50 @@ class CatalogoAdminFragment : Fragment() {
                 Toast.makeText(requireContext(), "Error al crear producto: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
                 Log.e("CatalogoFragment", "Error al crear producto: ${e.localizedMessage}", e)
             } finally {
-                setLoading(false) // ✅ apagar loader siempre
+                setLoading(false)
             }
         }
     }
 
-    private fun openImagePicker() {
-        val pickImageIntent = Intent(Intent.ACTION_PICK).apply {
-            type = "image/*"
+    /** Diálogo de confirmación de borrado (Material) */
+    private fun mostrarDialogoEliminar(producto: Producto, position: Int) {
+        val nombre = producto.nombre ?: "este producto"
+
+        // Por si el overlay está encima, lo ocultamos antes de mostrar el diálogo
+        if (loadingOverlay.visibility == View.VISIBLE) setLoading(false)
+
+        MaterialAlertDialogBuilder(requireContext(), R.style.MyAlertDialogTheme)
+            .setTitle("Eliminar producto")
+            .setMessage("¿Deseas eliminar \"$nombre\"?")
+            .setPositiveButton("Eliminar") { _, _ -> val id = producto.idProducto ?: return@setPositiveButton
+                eliminarProducto(id, position) }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    /** Llama al DELETE y quita el ítem del adapter */
+    private fun eliminarProducto(idProducto: Long, position: Int) {
+        lifecycleScope.launch {
+            setLoading(true)
+            try {
+                val resp = productApiService.deleteProducto(idProducto)
+                if (resp.isSuccessful) {
+                    productoAdapter.removeAt(position)
+                    Toast.makeText(requireContext(), "Producto eliminado", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(requireContext(), "No se pudo eliminar (${resp.code()})", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            } finally {
+                setLoading(false)
+            }
         }
+    }
+
+    /** Picker de imagen */
+    private fun openImagePicker() {
+        val pickImageIntent = Intent(Intent.ACTION_PICK).apply { type = "image/*" }
         startActivityForResult(pickImageIntent, IMAGE_PICK_REQUEST)
     }
 
@@ -257,29 +292,17 @@ class CatalogoAdminFragment : Fragment() {
 
     private fun getFileFromUri(uri: Uri?): File? {
         if (uri == null) return null
-
         val fileName = "temp_image_${System.currentTimeMillis()}.jpg"
         val file = File(requireContext().cacheDir, fileName)
-
         try {
             val inputStream = requireContext().contentResolver.openInputStream(uri)
             val outputStream = FileOutputStream(file)
-
-            inputStream?.use { input ->
-                outputStream.use { output ->
-                    input.copyTo(output)
-                }
-            }
-
+            inputStream?.use { input -> outputStream.use { output -> input.copyTo(output) } }
             return file
         } catch (e: Exception) {
             e.printStackTrace()
             return null
         }
-    }
-
-    companion object {
-        private const val IMAGE_PICK_REQUEST = 1
     }
 
     private fun resetForm() {
@@ -301,4 +324,7 @@ class CatalogoAdminFragment : Fragment() {
         cardAgregar.isEnabled = !loading
     }
 
+    companion object {
+        private const val IMAGE_PICK_REQUEST = 1
+    }
 }
