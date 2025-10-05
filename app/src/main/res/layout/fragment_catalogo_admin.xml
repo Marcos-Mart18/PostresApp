@@ -1,18 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/adminMain"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#FFFFFF"
-    android:orientation="vertical"
     tools:context=".presentation.ui.fragment.admin.CatalogoAdminFragment">
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="match_parent"
         android:fillViewport="true">
 
         <LinearLayout
@@ -124,52 +122,59 @@
                         android:layout_height="wrap_content"
                         android:orientation="horizontal">
 
+                        <!-- CONTENEDOR IZQUIERDO: imagen + botón -->
                         <LinearLayout
                             android:layout_width="120dp"
-                            android:layout_height="120dp"
-                            android:background="@drawable/bg_card_outline"
-                            android:gravity="center"
-                            android:layout_marginEnd="12dp">
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:layout_marginEnd="12dp"
+                            android:gravity="center">
+
+                            <ImageView
+                                android:id="@+id/imgProducto"
+                                android:layout_width="120dp"
+                                android:layout_height="120dp"
+                                android:adjustViewBounds="true"
+                                android:scaleType="centerCrop"
+                                android:src="@drawable/ic_image_placeholder"
+                                android:background="@drawable/bg_card_outline" />
 
                             <Button
                                 android:id="@+id/btnSelectImage"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Seleccionar imagen" />
-
-                            <!-- ImageView para mostrar la imagen seleccionada -->
-                            <ImageView
-                                android:id="@+id/imgProducto"
-                                android:layout_width="match_parent"
-                                android:layout_height="200dp"
-                                android:scaleType="centerCrop"
-                                android:src="@drawable/ic_image_placeholder"/>
+                                android:layout_marginTop="8dp"
+                                android:text="Selecciona imagen" />
                         </LinearLayout>
 
+                        <!-- CONTENEDOR DERECHO: descripción -->
                         <LinearLayout
                             android:layout_width="0dp"
-                            android:layout_height="120dp"
+                            android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:orientation="vertical">
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Descripción:"
-                                android:textColor="@color/white"
-                                android:textStyle="bold"/>
-
-                            <EditText
-                                android:id="@+id/etDescripcion"
+                            <!-- (Opcional pero recomendado) TextInputLayout de Material -->
+                            <com.google.android.material.textfield.TextInputLayout
                                 android:layout_width="match_parent"
-                                android:layout_height="0dp"
-                                android:layout_weight="1"
-                                android:background="@drawable/bg_input"
-                                android:hint="Nueva descripción"
-                                android:textSize="14sp"
-                                android:padding="12dp"
-                                android:gravity="top|start"
-                                android:maxLines="5"/>
+                                android:layout_height="wrap_content"
+                                app:counterEnabled="true"
+                                app:counterMaxLength="300">
+
+                                <EditText
+                                    android:id="@+id/etDescripcion"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:minLines="5"
+                                    android:maxLines="8"
+                                    android:inputType="textMultiLine"
+                                    android:scrollbars="vertical"
+                                    android:gravity="top|start"
+                                    android:background="@drawable/bg_input"
+                                    android:hint="Nueva descripción"
+                                    android:padding="12dp"
+                                    android:imeOptions="actionDone"/>
+                            </com.google.android.material.textfield.TextInputLayout>
                         </LinearLayout>
                     </LinearLayout>
 
@@ -273,4 +278,22 @@
         </LinearLayout>
     </ScrollView>
 
-</LinearLayout>
+    <!-- Overlay Lottie -->
+    <LinearLayout
+        android:id="@+id/loadingOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#80000000"
+        android:gravity="center"
+        android:visibility="gone">
+
+        <com.airbnb.lottie.LottieAnimationView
+            android:id="@+id/lottieLoader"
+            android:layout_width="140dp"
+            android:layout_height="140dp"
+            app:lottie_rawRes="@raw/loader"
+            app:lottie_autoPlay="true"
+            app:lottie_loop="true"/>
+    </LinearLayout>
+
+</FrameLayout>

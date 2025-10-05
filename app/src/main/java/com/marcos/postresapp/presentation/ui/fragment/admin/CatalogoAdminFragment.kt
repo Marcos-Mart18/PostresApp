@@ -62,7 +62,8 @@ class CatalogoAdminFragment : Fragment() {
     private lateinit var imgProducto: ImageView
     private lateinit var rvProductos: RecyclerView
     private lateinit var spCategoria: Spinner
-
+    private lateinit var loadingOverlay: View
+    private lateinit var lottieLoader: com.airbnb.lottie.LottieAnimationView
     private var imageUri: Uri? = null
 
     override fun onCreateView(
@@ -75,6 +76,9 @@ class CatalogoAdminFragment : Fragment() {
         val prefsManager = PrefsManager(requireContext())
         val authApiService = NetworkClient.createBasic().create(AuthApiService::class.java)
         val authRepository = AuthRepositoryImpl(authApiService, prefsManager)
+
+        loadingOverlay = rootView.findViewById(R.id.loadingOverlay)
+        lottieLoader = rootView.findViewById(R.id.lottieLoader)
 
         // Retrofit con interceptor
         val retrofitProtected = NetworkClient.create(prefsManager, authRepository)
@@ -93,6 +97,7 @@ class CatalogoAdminFragment : Fragment() {
         etPrecio = rootView.findViewById(R.id.etPrecio)
         etDescripcion = rootView.findViewById(R.id.etDescripcion)
         imgProducto = rootView.findViewById(R.id.imgProducto)
+        imgProducto.setImageResource(R.drawable.ic_image_placeholder)
         spCategoria = rootView.findViewById(R.id.spCategoria)
 
         cardAgregar.setOnClickListener {
@@ -121,17 +126,18 @@ class CatalogoAdminFragment : Fragment() {
         }
 
         btnCrear.setOnClickListener {
-            val nombre = etNombre.text.toString()
-            val precio = etPrecio.text.toString().toDouble()
-            val descripcion = etDescripcion.text.toString()
+            val nombre = etNombre.text.toString().trim()
+            val precio = etPrecio.text.toString().toDoubleOrNull()
+            val descripcion = etDescripcion.text.toString().trim()
 
-            if (nombre.isNotEmpty() && precio > 0 && descripcion.isNotEmpty() && imageUri != null) {
+            if (nombre.isNotEmpty() && (precio != null && precio > 0) && descripcion.isNotEmpty() && imageUri != null) {
                 val categoriaSeleccionada = spCategoria.selectedItem as Categoria
                 crearProducto(nombre, precio, descripcion, categoriaSeleccionada.idCategoria)
             } else {
-                Toast.makeText(requireContext(), "Por favor llena todos los campos", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Por favor, completa todos los campos correctamente", Toast.LENGTH_SHORT).show()
             }
         }
+
 
         btnUploadImage.setOnClickListener {
             openImagePicker()
@@ -202,13 +208,11 @@ class CatalogoAdminFragment : Fragment() {
         }
 
         val file = getFileFromUri(imageUri)
-
         if (file == null || !file.exists()) {
             Toast.makeText(requireContext(), "El archivo de imagen no existe o no se pudo acceder.", Toast.LENGTH_SHORT).show()
             return
         }
 
-        // Convertir ProductoDTO a JSON y crear RequestBody
         val productoJson = Gson().toJson(producto)
         val productoRequestBody = RequestBody.create("application/json".toMediaTypeOrNull(), productoJson)
 
@@ -216,20 +220,22 @@ class CatalogoAdminFragment : Fragment() {
         val filePart = MultipartBody.Part.createFormData("file", file.name, requestBody)
 
         lifecycleScope.launch {
+            setLoading(true) // ✅ encender loader antes de la llamada
             try {
                 val response = productApiService.createProductoWithImage(productoRequestBody, filePart)
                 Toast.makeText(requireContext(), "Producto creado con éxito", Toast.LENGTH_SHORT).show()
                 cargarProductos()
-                rvProductos.visibility = View.GONE
-                panelForm.visibility = View.VISIBLE
+                resetForm()
             } catch (e: HttpException) {
                 Toast.makeText(requireContext(), "Error HTTP: ${e.message()} ${e.code()}", Toast.LENGTH_SHORT).show()
             } catch (e: IOException) {
                 Toast.makeText(requireContext(), "Error de red: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
-                Log.e("Catalogofragment", "Error de red: ${e.localizedMessage}", e)
+                Log.e("CatalogoFragment", "Error de red: ${e.localizedMessage}", e)
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), "Error al crear producto: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
-                Log.e("Catalogofragment", "Error al crear producto: ${e.localizedMessage}", e)
+                Log.e("CatalogoFragment", "Error al crear producto: ${e.localizedMessage}", e)
+            } finally {
+                setLoading(false) // ✅ apagar loader siempre
             }
         }
     }
@@ -275,4 +281,24 @@ class CatalogoAdminFragment : Fragment() {
     companion object {
         private const val IMAGE_PICK_REQUEST = 1
     }
+
+    private fun resetForm() {
+        etNombre.setText("")
+        etPrecio.setText("")
+        etDescripcion.setText("")
+        spCategoria.setSelection(0)
+        imageUri = null
+        imgProducto.setImageResource(R.drawable.ic_image_placeholder)
+        rvProductos.visibility = View.VISIBLE
+        panelForm.visibility = View.GONE
+    }
+
+    private fun setLoading(loading: Boolean) {
+        loadingOverlay.visibility = if (loading) View.VISIBLE else View.GONE
+        if (loading) lottieLoader.playAnimation() else lottieLoader.cancelAnimation()
+        btnCrear.isEnabled = !loading
+        btnCancel.isEnabled = !loading
+        cardAgregar.isEnabled = !loading
+    }
+
 }
