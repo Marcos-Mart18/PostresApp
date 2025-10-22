@@ -89,6 +89,12 @@ class HomeAdminActivity : AppCompatActivity() {
         val navigationView = findViewById<NavigationView>(R.id.nav_view)
         navigationView.setNavigationItemSelectedListener { menuItem ->
             when (menuItem.itemId) {
+                R.id.categoriaCreate -> {
+                    val intent = Intent(this, CategoriaCRUDActivity::class.java)
+                    startActivity(intent)
+                    drawerLayout.closeDrawers()
+                    true
+                }
                 R.id.salir -> {
                     logoutUser()
                     drawerLayout.closeDrawers()

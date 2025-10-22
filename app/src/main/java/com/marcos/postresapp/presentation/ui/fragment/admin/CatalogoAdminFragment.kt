@@ -67,6 +67,7 @@ class CatalogoAdminFragment : Fragment() {
     private lateinit var loadingOverlay: View
     private lateinit var lottieLoader: com.airbnb.lottie.LottieAnimationView
     private var imageUri: Uri? = null
+    private var categoriasData: List<Categoria> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -133,8 +134,13 @@ class CatalogoAdminFragment : Fragment() {
             val descripcion = etDescripcion.text.toString().trim()
 
             if (nombre.isNotEmpty() && (precio != null && precio > 0) && descripcion.isNotEmpty() && imageUri != null) {
-                val categoriaSeleccionada = spCategoria.selectedItem as Categoria
-                crearProducto(nombre, precio, descripcion, categoriaSeleccionada.idCategoria)
+                val idx = spCategoria.selectedItemPosition
+                val categoriaSeleccionada = categoriasData.getOrNull(idx)
+                if (categoriaSeleccionada == null) {
+                    Toast.makeText(requireContext(), "Selecciona una categoría válida", Toast.LENGTH_SHORT).show()
+                } else {
+                    crearProducto(nombre, precio, descripcion, categoriaSeleccionada.idCategoria)
+                }
             } else {
                 Toast.makeText(requireContext(), "Por favor, completa todos los campos correctamente", Toast.LENGTH_SHORT).show()
             }
@@ -146,6 +152,12 @@ class CatalogoAdminFragment : Fragment() {
         cargarCategorias()
 
         return rootView
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Recargar categorías al volver desde el CRUD
+        cargarCategorias()
     }
 
     /** Cargar productos */
@@ -166,7 +178,9 @@ class CatalogoAdminFragment : Fragment() {
             try {
                 val categorias = categoriaApiService.getCategorias()
                 categoriaAdapter.actualizarLista(categorias)
-                val spinnerAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, categorias)
+                categoriasData = categorias
+                val nombres = categorias.map { it.nombre }
+                val spinnerAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, nombres)
                 spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
                 spCategoria.adapter = spinnerAdapter
             } catch (e: Exception) {
