@@ -172,6 +172,8 @@
                                     android:gravity="top|start"
                                     android:background="@drawable/bg_input"
                                     android:hint="Nueva descripción"
+                                    android:textColor="@color/black"
+                                    android:textColorHint="@color/gris"
                                     android:padding="12dp"
                                     android:imeOptions="actionDone"/>
                             </com.google.android.material.textfield.TextInputLayout>
@@ -194,6 +196,8 @@
                         android:background="@drawable/bg_input"
                         android:hint="Nombre"
                         android:textSize="14sp"
+                        android:textColor="@color/black"
+                        android:textColorHint="@color/gris"
                         android:padding="12dp"/>
 
                     <!-- Precio -->
@@ -213,6 +217,8 @@
                         android:hint="Precio"
                         android:inputType="numberDecimal"
                         android:textSize="14sp"
+                        android:textColor="@color/black"
+                        android:textColorHint="@color/gris"
                         android:padding="12dp"/>
 
                     <!-- Categoría -->

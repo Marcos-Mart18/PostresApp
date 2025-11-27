@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <group android:scaleX="0.8"
+           android:scaleY="0.8"
+           android:pivotX="54"
+           android:pivotY="54">
+        
+        <!-- Cupcake base con tu paleta -->
+        <path
+            android:fillColor="#F3DDB3"
+            android:pathData="M35,65 L73,65 L70,85 L38,85 Z" />
+        
+        <!-- Cupcake frosting -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M32,65 Q32,50 54,50 Q76,50 76,65 Q76,55 64,55 Q54,45 44,55 Q32,55 32,65" />
+        
+        <!-- Cherry on top -->
+        <path
+            android:fillColor="#FF0000"
+            android:pathData="M54,45m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
+        
+        <!-- Cherry stem -->
+        <path
+            android:fillColor="#C1CD97"
+            android:pathData="M54,41 L56,38 L58,35 L56,35 L54,38 Z" />
+            
+        <!-- Sparkles con tu paleta -->
+        <path
+            android:fillColor="#C8B4BA"
+            android:pathData="M40,40 L42,42 L40,44 L38,42 Z" />
+        <path
+            android:fillColor="#C1CD97"
+            android:pathData="M68,42 L70,44 L68,46 L66,44 Z" />
+    </group>
+</vector>

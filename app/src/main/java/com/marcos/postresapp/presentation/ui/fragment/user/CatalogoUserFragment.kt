@@ -16,12 +16,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.marcos.postresapp.R
-import com.marcos.postresapp.data.local.PrefsManager
-import com.marcos.postresapp.data.remote.api.AuthApiService
 import com.marcos.postresapp.data.remote.api.CategoriaApiService
-import com.marcos.postresapp.data.remote.api.NetworkClient
 import com.marcos.postresapp.data.remote.api.ProductoApiService
-import com.marcos.postresapp.data.repository.AuthRepositoryImpl
 import com.marcos.postresapp.domain.model.Categoria
 import com.marcos.postresapp.domain.model.Producto
 import com.marcos.postresapp.presentation.ui.adapter.CategoriaAdapter
@@ -31,14 +27,43 @@ import kotlinx.coroutines.launch
 
 class CatalogoUserFragment : Fragment() {
 
+    private val productApiService: ProductoApiService by lazy {
+        okhttp3.OkHttpClient.Builder()
+            .addInterceptor(okhttp3.logging.HttpLoggingInterceptor().apply {
+                level = okhttp3.logging.HttpLoggingInterceptor.Level.BODY
+            })
+            .build()
+            .let { client ->
+                retrofit2.Retrofit.Builder()
+                    .baseUrl("http://192.168.1.88:9090/")
+                    .client(client)
+                    .addConverterFactory(retrofit2.converter.gson.GsonConverterFactory.create())
+                    .build()
+                    .create(ProductoApiService::class.java)
+            }
+    }
+
+    private val categoriaApiService: CategoriaApiService by lazy {
+        okhttp3.OkHttpClient.Builder()
+            .addInterceptor(okhttp3.logging.HttpLoggingInterceptor().apply {
+                level = okhttp3.logging.HttpLoggingInterceptor.Level.BODY
+            })
+            .build()
+            .let { client ->
+                retrofit2.Retrofit.Builder()
+                    .baseUrl("http://192.168.1.88:9090/")
+                    .client(client)
+                    .addConverterFactory(retrofit2.converter.gson.GsonConverterFactory.create())
+                    .build()
+                    .create(CategoriaApiService::class.java)
+            }
+    }
+
     private lateinit var rvProductos: RecyclerView
     private lateinit var rvCategorias: RecyclerView
     private lateinit var viewPager: ViewPager2
     private lateinit var productoAdapter: ProductoAdapter
-    private lateinit var categoriaAdapter: CategoriaAdapter
-
-    private lateinit var productApiService: ProductoApiService
-    private lateinit var categoriaApiService: CategoriaApiService
+    private lateinit var categoriaAdapter: com.marcos.postresapp.presentation.ui.adapter.CategoriaAdapterCatalogo
 
     private var currentPage = 0  // Página actual para el carrusel
 
@@ -47,16 +72,6 @@ class CatalogoUserFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val rootView = inflater.inflate(R.layout.fragment_catalogo_user, container, false)
-
-        // 🔑 Inicializar PrefsManager y AuthRepository
-        val prefsManager = PrefsManager(requireContext())
-        val authApiService = NetworkClient.createBasic().create(AuthApiService::class.java)
-        val authRepository = AuthRepositoryImpl(authApiService, prefsManager)
-
-        // Retrofit con interceptor
-        val retrofitProtected = NetworkClient.create(prefsManager, authRepository)
-        productApiService = retrofitProtected.create(ProductoApiService::class.java)
-        categoriaApiService = retrofitProtected.create(CategoriaApiService::class.java)
 
         // Inicializando RecyclerView de productos
         rvProductos = rootView.findViewById(R.id.rvProductos)
@@ -68,7 +83,9 @@ class CatalogoUserFragment : Fragment() {
         rvCategorias = rootView.findViewById(R.id.rvCategorias)
         rvCategorias.layoutManager =
             LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
-        categoriaAdapter = CategoriaAdapter(emptyList()) { categoria ->
+        categoriaAdapter = com.marcos.postresapp.presentation.ui.adapter.CategoriaAdapterCatalogo(
+            emptyList()
+        ) { categoria ->
             filtrarPorCategoria(categoria)
         }
         rvCategorias.adapter = categoriaAdapter

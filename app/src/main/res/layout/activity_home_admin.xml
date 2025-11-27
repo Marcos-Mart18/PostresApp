@@ -21,7 +21,6 @@
             android:background="@color/morado"
             android:elevation="4dp" />
 
-
         <!-- Contenedor para los fragmentos (ViewPager2) -->
         <androidx.viewpager2.widget.ViewPager2
             android:id="@+id/viewPager"

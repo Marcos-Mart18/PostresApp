@@ -2,33 +2,41 @@ package com.marcos.postresapp.presentation.ui.activity.auth
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Button
+import android.view.View
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.textfield.TextInputEditText
 import com.marcos.postresapp.R
-import com.marcos.postresapp.presentation.ui.activity.user.HomeUserActivity
+import com.marcos.postresapp.presentation.state.UiState
 import com.marcos.postresapp.presentation.ui.activity.admin.HomeAdminActivity
 import com.marcos.postresapp.presentation.ui.activity.repartidor.HomeRepartidorActivity
-import com.marcos.postresapp.presentation.viewmodel.LoginViewModel
-import com.marcos.postresapp.presentation.viewmodel.LoginViewModelFactory
-import com.marcos.postresapp.data.local.PrefsManager
+import com.marcos.postresapp.presentation.ui.activity.user.HomeUserActivity
+import com.marcos.postresapp.presentation.viewmodel.auth.LoginViewModel
+import com.marcos.postresapp.presentation.ui.utils.CustomToast
+import com.marcos.postresapp.di.ServiceLocator
+import com.marcos.postresapp.domain.usecase.auth.LoginUseCase
+import androidx.lifecycle.ViewModelProvider
+import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
 
-    private val loginViewModel: LoginViewModel by viewModels { LoginViewModelFactory(this) }
+    private val viewModel: LoginViewModel by lazy {
+        val repository = ServiceLocator.getAuthRepository(this)
+        val loginUseCase = LoginUseCase(repository)
+        val factory = LoginViewModelFactory(loginUseCase, repository)
+        ViewModelProvider(this, factory)[LoginViewModel::class.java]
+    }
 
     private lateinit var txtUsuario: TextInputEditText
     private lateinit var txtContrasena: TextInputEditText
-    private lateinit var btnGoMain: Button
-
-    private lateinit var prefsManager: PrefsManager
+    private lateinit var btnGoMain: View
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContentView(R.layout.activity_login)
 
         // Inicialización de las vistas
@@ -36,59 +44,105 @@ class LoginActivity : AppCompatActivity() {
         txtContrasena = findViewById(R.id.txtContrasena)
         btnGoMain = findViewById(R.id.btnGoMain)
 
-        // Inicialización de PrefsManager
-        prefsManager = PrefsManager(this)
+        setupObservers()
+        setupListeners()
+    }
 
-        btnGoMain.setOnClickListener {
-            val username = txtUsuario.text.toString()
-            val password = txtContrasena.text.toString()
-
-            // Llamada a la función loginUser
-            loginUser(username, password)
+    private fun setupObservers() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.loginState.collect { state ->
+                    when (state) {
+                        is UiState.Idle -> {
+                            hideLoading()
+                        }
+                        
+                        is UiState.Loading -> {
+                            showLoading()
+                        }
+                        
+                        is UiState.Success -> {
+                            hideLoading()
+                            val user = state.data
+                            val roleText = when {
+                                "ADMIN" in user.roles -> "Administrador"
+                                "REPARTIDOR" in user.roles -> "Repartidor"
+                                else -> "Usuario"
+                            }
+                            CustomToast.success(
+                                this@LoginActivity,
+                                "¡Bienvenido ${user.username}! ($roleText)"
+                            )
+                            
+                            // Navegar según el rol
+                            navigateByRole()
+                        }
+                        
+                        is UiState.Error -> {
+                            hideLoading()
+                            val errorMsg = when {
+                                state.message.contains("401") || state.message.contains("Unauthorized") -> 
+                                    "Usuario o contraseña incorrectos"
+                                state.message.contains("network") || state.message.contains("timeout") -> 
+                                    "Sin conexión al servidor. Verifica tu red"
+                                state.message.contains("500") -> 
+                                    "Error del servidor. Inténtalo más tarde"
+                                else -> "Error de inicio de sesión: ${state.message}"
+                            }
+                            CustomToast.error(this@LoginActivity, errorMsg)
+                        }
+                    }
+                }
+            }
         }
     }
 
-    private fun loginUser(username: String, password: String) {
-        if (username.isNotEmpty() && password.isNotEmpty()) {
-            loginViewModel.login(
-                username,
-                password,
-                onSuccess = { message ->
-                    Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-
-                    // Obtenemos el rol del usuario desde PrefsManager
-                    val roles = prefsManager.getRoles()
-
-                    // Redirigir según el rol
-                    when {
-                        "ADMIN" in roles -> {
-                            // Redirigir a la vista de administrador
-                            val intent = Intent(this, HomeAdminActivity::class.java)
-                            startActivity(intent)
-                            finish()
-                        }
-                        "REPARTIDOR" in roles -> {
-                            // Redirigir a la vista de repartidor
-                            val intent = Intent(this, HomeRepartidorActivity::class.java)
-                            startActivity(intent)
-                            finish()
-                        }
-                        else -> {
-                            // Redirigir a la vista del usuario (Cliente)
-                            val intent = Intent(this, HomeUserActivity::class.java)
-                            startActivity(intent)
-                            finish()
-                        }
-                    }
-                },
-                onError = { error ->
-                    // Mostrar mensaje de error si ocurre algo al hacer login
-                    Toast.makeText(this, "Credenciales incorrectas", Toast.LENGTH_SHORT).show()
-                }
-            )
-        } else {
-            // Si los campos están vacíos, mostrar un mensaje de error
-            Toast.makeText(this, "Por favor ingresa usuario y contraseña", Toast.LENGTH_SHORT).show()
+    private fun setupListeners() {
+        btnGoMain.setOnClickListener {
+            val username = txtUsuario.text.toString().trim()
+            val password = txtContrasena.text.toString().trim()
+            
+            if (username.isEmpty() || password.isEmpty()) {
+                Toast.makeText(
+                    this,
+                    "Por favor completa todos los campos",
+                    Toast.LENGTH_SHORT
+                ).show()
+                return@setOnClickListener
+            }
+            
+            CustomToast.info(this, "Iniciando sesión...")
+            viewModel.login(username, password)
         }
+    }
+
+    private fun navigateByRole() {
+        val roles = viewModel.getUserRoles()
+        
+        val intent = when {
+            "ADMIN" in roles -> Intent(this, HomeAdminActivity::class.java)
+            "REPARTIDOR" in roles -> Intent(this, HomeRepartidorActivity::class.java)
+            else -> Intent(this, HomeUserActivity::class.java)
+        }
+        
+        startActivity(intent)
+        finish()
+    }
+
+    private fun showLoading() {
+        btnGoMain.isEnabled = false
+        txtUsuario.isEnabled = false
+        txtContrasena.isEnabled = false
+    }
+
+    private fun hideLoading() {
+        btnGoMain.isEnabled = true
+        txtUsuario.isEnabled = true
+        txtContrasena.isEnabled = true
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        viewModel.resetState()
     }
 }

@@ -1,56 +1,52 @@
 package com.marcos.postresapp.presentation.ui.adapter
 
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import android.widget.LinearLayout
-import android.widget.TextView
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.marcos.postresapp.R
+import com.marcos.postresapp.databinding.ItemCategoriaBinding
 import com.marcos.postresapp.domain.model.Categoria
 
 class CategoriaAdapter(
-    private var categorias: List<Categoria>,
-    private val onCategoriaClick: (Categoria) -> Unit
-) : RecyclerView.Adapter<CategoriaAdapter.ViewHolder>() {
+    private val onEditClick: (Categoria) -> Unit
+) : ListAdapter<Categoria, CategoriaAdapter.CategoriaViewHolder>(CategoriaDiffCallback()) {
 
-    private var selectedPosition = -1
-
-    inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val tvCategoria: TextView = view.findViewById(R.id.tvCategoria)
-        val layout: LinearLayout = view.findViewById(R.id.layoutCategoria)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CategoriaViewHolder {
+        val binding = ItemCategoriaBinding.inflate(
+            LayoutInflater.from(parent.context),
+            parent,
+            false
+        )
+        return CategoriaViewHolder(binding, onEditClick)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_categoria, parent, false)
-        return ViewHolder(view)
+    override fun onBindViewHolder(holder: CategoriaViewHolder, position: Int) {
+        holder.bind(getItem(position))
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val categoria = categorias[holder.adapterPosition]
-        holder.tvCategoria.text = categoria.nombre
+    class CategoriaViewHolder(
+        private val binding: ItemCategoriaBinding,
+        private val onEditClick: (Categoria) -> Unit
+    ) : RecyclerView.ViewHolder(binding.root) {
 
-        // Cambiar estilo según si está seleccionada
-        if (holder.adapterPosition == selectedPosition) {
-            holder.layout.setBackgroundResource(R.drawable.bg_chip_selector)
-        } else {
-            holder.layout.setBackgroundResource(R.drawable.bg_chip_outline)
-        }
-
-        holder.layout.setOnClickListener {
-            val prevPosition = selectedPosition
-            selectedPosition = holder.adapterPosition
-            notifyItemChanged(prevPosition)
-            notifyItemChanged(selectedPosition)
-            onCategoriaClick(categoria)
+        fun bind(categoria: Categoria) {
+            binding.tvNombreCategoria.text = categoria.nombre
+            binding.tvIdCategoria.text = "ID: ${categoria.idCategoria}"
+            
+            binding.btnEditarCategoria.setOnClickListener {
+                onEditClick(categoria)
+            }
         }
     }
 
-    override fun getItemCount() = categorias.size
+    private class CategoriaDiffCallback : DiffUtil.ItemCallback<Categoria>() {
+        override fun areItemsTheSame(oldItem: Categoria, newItem: Categoria): Boolean {
+            return oldItem.idCategoria == newItem.idCategoria
+        }
 
-    fun actualizarLista(nuevaLista: List<Categoria>) {
-        categorias = nuevaLista
-        notifyDataSetChanged()
+        override fun areContentsTheSame(oldItem: Categoria, newItem: Categoria): Boolean {
+            return oldItem == newItem
+        }
     }
 }

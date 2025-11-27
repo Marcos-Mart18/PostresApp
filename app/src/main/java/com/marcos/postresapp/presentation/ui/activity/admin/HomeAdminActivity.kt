@@ -13,15 +13,13 @@ import com.google.android.material.navigation.NavigationView
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import com.marcos.postresapp.R
-import com.marcos.postresapp.data.local.PrefsManager
-import com.marcos.postresapp.data.remote.api.AuthApiService
-import com.marcos.postresapp.data.remote.api.NetworkClient
-import com.marcos.postresapp.data.repository.AuthRepositoryImpl
+import com.marcos.postresapp.domain.repository.auth.AuthRepository
 import com.marcos.postresapp.presentation.ui.activity.auth.LoginActivity
 import com.marcos.postresapp.presentation.ui.adapter.CatalogoPagerAdapter
 import com.marcos.postresapp.presentation.ui.fragment.ProfileFragment
 import com.marcos.postresapp.presentation.ui.fragment.admin.PedidoAdminFragment
 import com.marcos.postresapp.presentation.ui.fragment.admin.CatalogoAdminFragment
+import com.marcos.postresapp.di.ServiceLocator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -29,27 +27,18 @@ import kotlinx.coroutines.withContext
 
 class HomeAdminActivity : AppCompatActivity() {
 
+    private val authRepository: AuthRepository by lazy {
+        ServiceLocator.getAuthRepository(this)
+    }
+
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var tabLayout: TabLayout
     private lateinit var viewPager: ViewPager2
     private lateinit var toolbar: Toolbar
-    private lateinit var authRepository: AuthRepositoryImpl
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home_admin)
-
-        // 🔑 Inicializar AuthRepositoryImpl
-        val prefsManager = PrefsManager(this)
-
-        // Retrofit básico (sin interceptor) SOLO para AuthApiService
-        val authApiService = NetworkClient.createBasic().create(AuthApiService::class.java)
-
-        // AuthRepositoryImpl usa ese AuthApiService básico
-        authRepository = AuthRepositoryImpl(authApiService, prefsManager)
-
-        // Si más adelante necesitas otros servicios protegidos (ej. ProductoApiService):
-        // val retrofitProtected = NetworkClient.create(prefsManager, authRepository)
 
         // Inicializando las vistas
         drawerLayout = findViewById(R.id.mainAdmin)
@@ -69,6 +58,7 @@ class HomeAdminActivity : AppCompatActivity() {
         // Configuración del ViewPager2 y TabLayout
         val fragmentList = listOf(
             CatalogoAdminFragment(),
+            com.marcos.postresapp.presentation.ui.fragment.admin.CategoriaAdminFragment(),
             PedidoAdminFragment(),
             ProfileFragment()
         )
@@ -78,9 +68,10 @@ class HomeAdminActivity : AppCompatActivity() {
 
         TabLayoutMediator(tabLayout, viewPager) { tab, position ->
             tab.text = when (position) {
-                0 -> "Inicio"
-                1 -> "Pedidos"
-                2 -> "Perfil"
+                0 -> "Productos"
+                1 -> "Categorías"
+                2 -> "Pedidos"
+                3 -> "Perfil"
                 else -> "Otro"
             }
         }.attach()
@@ -89,6 +80,26 @@ class HomeAdminActivity : AppCompatActivity() {
         val navigationView = findViewById<NavigationView>(R.id.nav_view)
         navigationView.setNavigationItemSelectedListener { menuItem ->
             when (menuItem.itemId) {
+                R.id.nav_productos -> {
+                    viewPager.currentItem = 0
+                    drawerLayout.closeDrawers()
+                    true
+                }
+                R.id.nav_categorias -> {
+                    viewPager.currentItem = 1
+                    drawerLayout.closeDrawers()
+                    true
+                }
+                R.id.nav_pedidos -> {
+                    viewPager.currentItem = 2
+                    drawerLayout.closeDrawers()
+                    true
+                }
+                R.id.nav_perfil -> {
+                    viewPager.currentItem = 3
+                    drawerLayout.closeDrawers()
+                    true
+                }
                 R.id.salir -> {
                     logoutUser()
                     drawerLayout.closeDrawers()

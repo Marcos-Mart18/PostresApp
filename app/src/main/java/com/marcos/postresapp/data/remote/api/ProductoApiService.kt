@@ -25,4 +25,18 @@ interface ProductoApiService {
 
     @DELETE("api/v1/productos/{id}")
     suspend fun deleteProducto(@Path("id") id: Long): Response<Unit>
+
+    @Multipart
+    @retrofit2.http.PUT("api/v1/productos/{id}/updateWithImage")
+    suspend fun updateProductoWithImage(
+        @Path("id") id: Long,
+        @Part("producto") producto: RequestBody,
+        @Part file: MultipartBody.Part
+    ): Producto
+
+    @retrofit2.http.PUT("api/v1/productos/{id}")
+    suspend fun updateProducto(
+        @Path("id") id: Long,
+        @retrofit2.http.Body producto: com.marcos.postresapp.data.remote.dto.producto.ProductoRequestDto
+    ): Producto
 }

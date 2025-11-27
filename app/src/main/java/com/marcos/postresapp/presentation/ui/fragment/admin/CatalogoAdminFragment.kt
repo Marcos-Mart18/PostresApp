@@ -22,18 +22,17 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder   // 👈 usar Material
 import com.marcos.postresapp.R
-import com.marcos.postresapp.data.local.PrefsManager
-import com.marcos.postresapp.data.remote.api.AuthApiService
 import com.marcos.postresapp.data.remote.api.CategoriaApiService
-import com.marcos.postresapp.data.remote.api.NetworkClient
 import com.marcos.postresapp.data.remote.api.ProductoApiService
-import com.marcos.postresapp.data.repository.AuthRepositoryImpl
-import com.marcos.postresapp.domain.dto.ProductoDTO
+import com.marcos.postresapp.data.remote.api.AuthApiService
+import com.marcos.postresapp.data.remote.dto.auth.RefreshTokenRequestDto
+import com.marcos.postresapp.presentation.ui.utils.CustomToast
+import com.marcos.postresapp.data.remote.dto.producto.ProductoRequestDto
 import com.marcos.postresapp.domain.model.Categoria
 import com.marcos.postresapp.domain.model.Producto
-import com.marcos.postresapp.presentation.ui.adapter.CategoriaAdapter
 import com.marcos.postresapp.presentation.ui.adapter.ProductoAdapterAdmin
 import com.google.gson.Gson
+import com.marcos.postresapp.di.ServiceLocator
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -45,12 +44,100 @@ import java.io.IOException
 
 class CatalogoAdminFragment : Fragment() {
 
+    private fun createAuthenticatedApiService(): ProductoApiService {
+        val client = okhttp3.OkHttpClient.Builder()
+            .addInterceptor(okhttp3.logging.HttpLoggingInterceptor().apply {
+                level = okhttp3.logging.HttpLoggingInterceptor.Level.BODY
+            })
+            .addInterceptor { chain ->
+                // Obtener token DINÁMICAMENTE en cada petición
+                val prefs = ServiceLocator.getPrefsManager(requireContext())
+                val token = prefs.getAccessToken()
+                val refreshToken = prefs.getRefreshToken()
+                val roles = prefs.getRoles()
+                
+                android.util.Log.d("CatalogoAdmin", "=== NUEVA PETICIÓN ===")
+                android.util.Log.d("CatalogoAdmin", "Roles del usuario: $roles")
+                android.util.Log.d("CatalogoAdmin", "Access token disponible: ${token != null}")
+                android.util.Log.d("CatalogoAdmin", "Refresh token disponible: ${refreshToken != null}")
+                if (token != null) {
+                    android.util.Log.d("CatalogoAdmin", "Token length: ${token.length}")
+                    android.util.Log.d("CatalogoAdmin", "Token (primeros 50): ${token.take(50)}...")
+                }
+                
+                val request = if (token != null) {
+                    android.util.Log.d("CatalogoAdmin", "✅ Agregando token a petición")
+                    chain.request().newBuilder()
+                        .addHeader("Authorization", "Bearer $token")
+                        .build()
+                } else {
+                    android.util.Log.e("CatalogoAdmin", "❌ Token no encontrado!")
+                    chain.request()
+                }
+                
+                val response = chain.proceed(request)
+                android.util.Log.d("CatalogoAdmin", "Respuesta: ${response.code}")
+                
+                // Si recibimos 401, mostrar mensaje claro
+                if (response.code == 401) {
+                    android.util.Log.e("CatalogoAdmin", "❌ Error 401 - Token inválido")
+                    activity?.runOnUiThread {
+                        CustomToast.error(requireContext(), "Token inválido. Renovando...")
+                    }
+                }
+                
+                response
+            }
+            .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
+        
+        return retrofit2.Retrofit.Builder()
+            .baseUrl("http://10.40.26.157:9090/")
+            .client(client)
+            .addConverterFactory(retrofit2.converter.gson.GsonConverterFactory.create())
+            .build()
+            .create(ProductoApiService::class.java)
+    }
+
+    private fun createCategoriaApiService(): CategoriaApiService {
+        val client = okhttp3.OkHttpClient.Builder()
+            .addInterceptor(okhttp3.logging.HttpLoggingInterceptor().apply {
+                level = okhttp3.logging.HttpLoggingInterceptor.Level.BODY
+            })
+            .addInterceptor { chain ->
+                // Obtener token DINÁMICAMENTE
+                val prefs = ServiceLocator.getPrefsManager(requireContext())
+                val token = prefs.getAccessToken()
+                
+                val request = if (token != null) {
+                    android.util.Log.d("CatalogoAdmin", "✅ Token categorías: ${token.take(50)}...")
+                    chain.request().newBuilder()
+                        .addHeader("Authorization", "Bearer $token")
+                        .build()
+                } else {
+                    android.util.Log.e("CatalogoAdmin", "❌ Token no encontrado para categorías!")
+                    chain.request()
+                }
+                chain.proceed(request)
+            }
+            .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
+        
+        return retrofit2.Retrofit.Builder()
+            .baseUrl("http://10.40.26.157:9090/")
+            .client(client)
+            .addConverterFactory(retrofit2.converter.gson.GsonConverterFactory.create())
+            .build()
+            .create(CategoriaApiService::class.java)
+    }
+
     private lateinit var rvCategorias: RecyclerView
     private lateinit var productoAdapter: ProductoAdapterAdmin
-    private lateinit var categoriaAdapter: CategoriaAdapter
-
-    private lateinit var productApiService: ProductoApiService
-    private lateinit var categoriaApiService: CategoriaApiService
+    private lateinit var categoriaAdapter: com.marcos.postresapp.presentation.ui.adapter.CategoriaAdapterCatalogo
 
     private lateinit var cardAgregar: View
     private lateinit var panelForm: View
@@ -73,14 +160,6 @@ class CatalogoAdminFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val rootView = inflater.inflate(R.layout.fragment_catalogo_admin, container, false)
-
-        // 🔑 Prefs + Auth + Retrofit (interceptor)
-        val prefsManager = PrefsManager(requireContext())
-        val authApiService = NetworkClient.createBasic().create(AuthApiService::class.java)
-        val authRepository = AuthRepositoryImpl(authApiService, prefsManager)
-        val retrofitProtected = NetworkClient.create(prefsManager, authRepository)
-        productApiService = retrofitProtected.create(ProductoApiService::class.java)
-        categoriaApiService = retrofitProtected.create(CategoriaApiService::class.java)
 
         // Views
         loadingOverlay = rootView.findViewById(R.id.loadingOverlay)
@@ -111,7 +190,7 @@ class CatalogoAdminFragment : Fragment() {
         productoAdapter = ProductoAdapterAdmin(
             productos = mutableListOf(),
             onLongPress = { producto, pos -> mostrarDialogoEliminar(producto, pos) },
-            onEditClick = { _, _ -> /* abre edición si lo necesitas */ }
+            onEditClick = { producto, _ -> mostrarDialogoEditarProducto(producto) }
         )
         rvProductos.adapter = productoAdapter
 
@@ -119,7 +198,11 @@ class CatalogoAdminFragment : Fragment() {
         rvCategorias = rootView.findViewById(R.id.rvCategorias)
         rvCategorias.layoutManager =
             LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
-        categoriaAdapter = CategoriaAdapter(emptyList()) { categoria -> filtrarPorCategoria(categoria) }
+        categoriaAdapter = com.marcos.postresapp.presentation.ui.adapter.CategoriaAdapterCatalogo(
+            emptyList()
+        ) { categoria -> 
+            filtrarPorCategoria(categoria) 
+        }
         rvCategorias.adapter = categoriaAdapter
 
         // Chip "Todos"
@@ -152,25 +235,74 @@ class CatalogoAdminFragment : Fragment() {
     private fun cargarProductos() {
         lifecycleScope.launch {
             try {
-                val productos = productApiService.getProductos()
+                Log.d("CatalogoAdmin", "🔄 Cargando productos...")
+                val productos = createAuthenticatedApiService().getProductos()
                 productoAdapter.actualizarLista(productos)
+                Log.d("CatalogoAdmin", "✅ Productos cargados: ${productos.size}")
+                
+                if (productos.isEmpty()) {
+                    CustomToast.info(requireContext(), "No hay productos disponibles")
+                }
+            } catch (e: HttpException) {
+                Log.e("CatalogoAdmin", "❌ Error HTTP ${e.code()}: ${e.message()}")
+                
+                val errorMsg = when (e.code()) {
+                    401 -> {
+                        handleSessionExpired()
+                        "Sesión expirada"
+                    }
+                    403 -> "No tienes permisos para ver productos"
+                    500 -> "Error del servidor"
+                    else -> "Error cargando productos (${e.code()})"
+                }
+                CustomToast.error(requireContext(), errorMsg)
+            } catch (e: IOException) {
+                CustomToast.error(requireContext(), "Sin conexión a internet")
+                Log.e("CatalogoAdmin", "Error de red: ${e.message}", e)
             } catch (e: Exception) {
-                Toast.makeText(requireContext(), "Error cargando productos: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                CustomToast.error(requireContext(), "Error inesperado cargando productos")
+                Log.e("CatalogoAdmin", "Error: ${e.message}", e)
             }
         }
     }
 
     /** Cargar categorías */
     private fun cargarCategorias() {
+        Log.d("CatalogoAdmin", "🔄 Iniciando carga de categorías...")
         lifecycleScope.launch {
             try {
-                val categorias = categoriaApiService.getCategorias()
+                val categorias = createCategoriaApiService().getCategorias()
+                Log.d("CatalogoAdmin", "✅ Categorías cargadas: ${categorias.size}")
+                
                 categoriaAdapter.actualizarLista(categorias)
-                val spinnerAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, categorias)
-                spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                val spinnerAdapter = com.marcos.postresapp.presentation.ui.adapter.CategoriaSpinnerAdapter(
+                    requireContext(),
+                    categorias
+                )
                 spCategoria.adapter = spinnerAdapter
+                
+                if (categorias.isEmpty()) {
+                    CustomToast.warning(requireContext(), "No hay categorías disponibles. Crea una primero")
+                }
+            } catch (e: HttpException) {
+                Log.e("CatalogoAdmin", "❌ Error HTTP ${e.code()}: ${e.message()}")
+                
+                val errorMsg = when (e.code()) {
+                    401 -> {
+                        handleSessionExpired()
+                        "Sesión expirada al cargar categorías"
+                    }
+                    403 -> "No tienes permisos para ver categorías"
+                    500 -> "Error del servidor"
+                    else -> "Error cargando categorías (${e.code()})"
+                }
+                CustomToast.error(requireContext(), errorMsg)
+            } catch (e: IOException) {
+                CustomToast.error(requireContext(), "Sin conexión para cargar categorías")
+                Log.e("CatalogoAdmin", "Error de red: ${e.message}", e)
             } catch (e: Exception) {
-                Toast.makeText(requireContext(), "Error cargando categorías: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                CustomToast.error(requireContext(), "Error inesperado cargando categorías")
+                Log.e("CatalogoAdmin", "Error: ${e.message}", e)
             }
         }
     }
@@ -179,11 +311,11 @@ class CatalogoAdminFragment : Fragment() {
     private fun filtrarPorCategoria(categoria: Categoria) {
         lifecycleScope.launch {
             try {
-                val productos = productApiService.getProductos()
+                val productos = createAuthenticatedApiService().getProductos()
                 val filtrados = productos.filter { it.categoria?.idCategoria == categoria.idCategoria }
                 productoAdapter.actualizarLista(filtrados)
             } catch (e: Exception) {
-                Toast.makeText(requireContext(), "Error al filtrar productos: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                CustomToast.error(requireContext(), "Error al filtrar productos")
             }
         }
     }
@@ -192,50 +324,105 @@ class CatalogoAdminFragment : Fragment() {
     private fun mostrarTodosLosProductos() {
         lifecycleScope.launch {
             try {
-                val productos = productApiService.getProductos()
+                val productos = createAuthenticatedApiService().getProductos()
                 productoAdapter.actualizarLista(productos)
             } catch (e: Exception) {
-                Toast.makeText(requireContext(), "Error cargando productos: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                CustomToast.error(requireContext(), "Error cargando productos")
             }
         }
     }
 
     /** Crear producto */
     private fun crearProducto(nombre: String, precio: Double, descripcion: String, idCategoria: Int) {
-        val producto = ProductoDTO(nombre, precio, descripcion, idCategoria)
+        val producto = ProductoRequestDto(nombre, precio, descripcion, idCategoria)
 
         if (imageUri == null) {
-            Toast.makeText(requireContext(), "No se ha seleccionado ninguna imagen.", Toast.LENGTH_SHORT).show()
+            CustomToast.warning(requireContext(), "No se ha seleccionado ninguna imagen")
             return
         }
         val file = getFileFromUri(imageUri)
         if (file == null || !file.exists()) {
-            Toast.makeText(requireContext(), "El archivo de imagen no existe o no se pudo acceder.", Toast.LENGTH_SHORT).show()
+            CustomToast.error(requireContext(), "El archivo de imagen no existe o no se pudo acceder")
             return
         }
-
-        val productoJson = Gson().toJson(producto)
-        val productoRequestBody = RequestBody.create("application/json".toMediaTypeOrNull(), productoJson)
-        val requestBody = RequestBody.create("image/*".toMediaTypeOrNull(), file)
-        val filePart = MultipartBody.Part.createFormData("file", file.name, requestBody)
 
         lifecycleScope.launch {
             setLoading(true)
             try {
-                productApiService.createProductoWithImage(productoRequestBody, filePart)
-                Toast.makeText(requireContext(), "Producto creado con éxito", Toast.LENGTH_SHORT).show()
+                // Crear RequestBodies reutilizables para evitar problemas con reintentos
+                val productoJson = Gson().toJson(producto)
+                val productoRequestBody = com.marcos.postresapp.data.remote.utils.ReusableRequestBody.create(
+                    "application/json".toMediaTypeOrNull(), 
+                    productoJson
+                )
+                
+                // Leer el archivo una sola vez y crear RequestBody reutilizable
+                val fileBytes = file.readBytes()
+                val requestBody = com.marcos.postresapp.data.remote.utils.ReusableRequestBody.create(
+                    "image/*".toMediaTypeOrNull(), 
+                    fileBytes
+                )
+                val filePart = MultipartBody.Part.createFormData("file", file.name, requestBody)
+
+                Log.d("CatalogoFragment", "🚀 Creando producto: $nombre")
+                createAuthenticatedApiService().createProductoWithImage(productoRequestBody, filePart)
+                
+                Log.d("CatalogoFragment", "✅ Producto creado exitosamente")
+                CustomToast.success(requireContext(), "¡Producto creado con éxito!")
                 cargarProductos()
                 resetForm()
+                
             } catch (e: HttpException) {
-                Toast.makeText(requireContext(), "Error HTTP: ${e.message()} ${e.code()}", Toast.LENGTH_SHORT).show()
+                Log.e("CatalogoFragment", "❌ Error HTTP ${e.code()}: ${e.message()}")
+                
+                val errorMsg = when (e.code()) {
+                    401 -> {
+                        // El TokenAuthenticator ya manejó el refresh automáticamente
+                        // Si llegamos aquí, significa que el refresh falló
+                        Log.w("CatalogoFragment", "🔴 Autenticación falló después del refresh automático")
+                        handleSessionExpired()
+                        "Sesión expirada. Por favor, inicia sesión nuevamente"
+                    }
+                    403 -> "No tienes permisos para crear productos"
+                    409 -> "Ya existe un producto con ese nombre"
+                    413 -> "La imagen es demasiado grande"
+                    422 -> "Datos del producto inválidos"
+                    500 -> "Error del servidor. Inténtalo más tarde"
+                    else -> "Error del servidor (${e.code()})"
+                }
+                CustomToast.error(requireContext(), errorMsg)
+                Log.e("CatalogoFragment", "Error HTTP ${e.code()}: ${e.message()}", e)
             } catch (e: IOException) {
-                Toast.makeText(requireContext(), "Error de red: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                CustomToast.error(requireContext(), "Sin conexión a internet. Verifica tu red")
                 Log.e("CatalogoFragment", "Error de red: ${e.localizedMessage}", e)
             } catch (e: Exception) {
-                Toast.makeText(requireContext(), "Error al crear producto: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                CustomToast.error(requireContext(), "Error inesperado al crear producto")
                 Log.e("CatalogoFragment", "Error al crear producto: ${e.localizedMessage}", e)
             } finally {
                 setLoading(false)
+            }
+        }
+    }
+
+    /** Maneja la expiración de sesión */
+    private fun handleSessionExpired() {
+        Log.w("CatalogoFragment", "🔴 Sesión expirada - Limpiando datos y redirigiendo")
+        
+        lifecycleScope.launch {
+            try {
+                // Limpiar datos de usuario
+                val prefs = ServiceLocator.getPrefsManager(requireContext())
+                prefs.clearUserData()
+                
+                // Redirigir al login
+                val intent = Intent(requireContext(), com.marcos.postresapp.presentation.ui.activity.auth.LoginActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(intent)
+                activity?.finish()
+                
+            } catch (e: Exception) {
+                Log.e("CatalogoFragment", "❌ Error en logout automático: ${e.message}")
+                CustomToast.error(requireContext(), "Error al cerrar sesión. Hazlo manualmente")
             }
         }
     }
@@ -261,15 +448,44 @@ class CatalogoAdminFragment : Fragment() {
         lifecycleScope.launch {
             setLoading(true)
             try {
-                val resp = productApiService.deleteProducto(idProducto)
+                Log.d("CatalogoAdmin", "🗑️ Eliminando producto ID: $idProducto")
+                val resp = createAuthenticatedApiService().deleteProducto(idProducto)
+                
                 if (resp.isSuccessful) {
                     productoAdapter.removeAt(position)
-                    Toast.makeText(requireContext(), "Producto eliminado", Toast.LENGTH_SHORT).show()
+                    CustomToast.success(requireContext(), "Producto eliminado exitosamente")
+                    Log.d("CatalogoAdmin", "✅ Producto eliminado")
                 } else {
-                    Toast.makeText(requireContext(), "No se pudo eliminar (${resp.code()})", Toast.LENGTH_SHORT).show()
+                    val errorMsg = when (resp.code()) {
+                        401 -> {
+                            handleSessionExpired()
+                            "Sesión expirada"
+                        }
+                        403 -> "No tienes permisos para eliminar productos"
+                        404 -> "Producto no encontrado"
+                        else -> "No se pudo eliminar (${resp.code()})"
+                    }
+                    CustomToast.error(requireContext(), errorMsg)
                 }
+            } catch (e: HttpException) {
+                Log.e("CatalogoAdmin", "❌ Error HTTP ${e.code()}: ${e.message()}")
+                
+                val errorMsg = when (e.code()) {
+                    401 -> {
+                        handleSessionExpired()
+                        "Sesión expirada"
+                    }
+                    403 -> "No tienes permisos para eliminar productos"
+                    404 -> "Producto no encontrado"
+                    else -> "Error al eliminar (${e.code()})"
+                }
+                CustomToast.error(requireContext(), errorMsg)
+            } catch (e: IOException) {
+                CustomToast.error(requireContext(), "Sin conexión a internet")
+                Log.e("CatalogoAdmin", "Error de red: ${e.message}", e)
             } catch (e: Exception) {
-                Toast.makeText(requireContext(), "Error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                CustomToast.error(requireContext(), "Error inesperado al eliminar")
+                Log.e("CatalogoAdmin", "Error: ${e.message}", e)
             } finally {
                 setLoading(false)
             }
@@ -284,9 +500,19 @@ class CatalogoAdminFragment : Fragment() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == IMAGE_PICK_REQUEST && resultCode == Activity.RESULT_OK) {
-            imageUri = data?.data
-            imgProducto.setImageURI(imageUri)
+        when (requestCode) {
+            IMAGE_PICK_REQUEST -> {
+                if (resultCode == Activity.RESULT_OK) {
+                    imageUri = data?.data
+                    imgProducto.setImageURI(imageUri)
+                }
+            }
+            IMAGE_EDIT_REQUEST -> {
+                if (resultCode == Activity.RESULT_OK) {
+                    editImageUri = data?.data
+                    // La imagen se actualizará en el dialog cuando se reabra
+                }
+            }
         }
     }
 
@@ -324,7 +550,134 @@ class CatalogoAdminFragment : Fragment() {
         cardAgregar.isEnabled = !loading
     }
 
+    private var editingProducto: Producto? = null
+    private var editImageUri: Uri? = null
+
+    private fun mostrarDialogoEditarProducto(producto: Producto) {
+        editingProducto = producto
+        editImageUri = null
+
+        val dialogView = LayoutInflater.from(requireContext())
+            .inflate(R.layout.dialog_editar_producto, null)
+
+        val imgProducto = dialogView.findViewById<ImageView>(R.id.imgEditarProducto)
+        val btnEditarImagen = dialogView.findViewById<Button>(R.id.btnEditarImagen)
+        val inputNombre = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.inputEditarNombre)
+        val inputPrecio = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.inputEditarPrecio)
+        val inputDescripcion = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.inputEditarDescripcion)
+        val spCategoria = dialogView.findViewById<Spinner>(R.id.spEditarCategoria)
+
+        // Cargar datos actuales
+        inputNombre.setText(producto.nombre)
+        inputPrecio.setText(producto.precio.toString())
+        inputDescripcion.setText(producto.descripcion)
+
+        // Cargar imagen actual
+        com.bumptech.glide.Glide.with(this)
+            .load(producto.fotoUrl)
+            .placeholder(R.drawable.ic_image_placeholder)
+            .into(imgProducto)
+
+        // Cargar categorías en spinner
+        lifecycleScope.launch {
+            try {
+                val categorias = createCategoriaApiService().getCategorias()
+                val spinnerAdapter = com.marcos.postresapp.presentation.ui.adapter.CategoriaSpinnerAdapter(
+                    requireContext(),
+                    categorias
+                )
+                spCategoria.adapter = spinnerAdapter
+
+                // Seleccionar categoría actual
+                val currentCategoriaIndex = categorias.indexOfFirst { it.idCategoria == producto.categoria?.idCategoria }
+                if (currentCategoriaIndex >= 0) {
+                    spCategoria.setSelection(currentCategoriaIndex)
+                }
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Error cargando categorías", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Botón para cambiar imagen
+        btnEditarImagen.setOnClickListener {
+            val pickImageIntent = Intent(Intent.ACTION_PICK).apply { type = "image/*" }
+            startActivityForResult(pickImageIntent, IMAGE_EDIT_REQUEST)
+        }
+
+        // Mostrar dialog
+        MaterialAlertDialogBuilder(requireContext(), R.style.MyAlertDialogTheme)
+            .setTitle("Editar Producto")
+            .setView(dialogView)
+            .setPositiveButton("Actualizar") { _, _ ->
+                val nombre = inputNombre.text.toString().trim()
+                val precio = inputPrecio.text.toString().toDoubleOrNull()
+                val descripcion = inputDescripcion.text.toString().trim()
+                val categoriaSeleccionada = spCategoria.selectedItem as? Categoria
+
+                if (nombre.isNotEmpty() && precio != null && precio > 0 && descripcion.isNotEmpty() && categoriaSeleccionada != null) {
+                    actualizarProducto(
+                        producto.idProducto ?: return@setPositiveButton,
+                        nombre,
+                        precio,
+                        descripcion,
+                        categoriaSeleccionada.idCategoria,
+                        editImageUri
+                    )
+                } else {
+                    Toast.makeText(requireContext(), "Completa todos los campos correctamente", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun actualizarProducto(
+        idProducto: Long,
+        nombre: String,
+        precio: Double,
+        descripcion: String,
+        idCategoria: Int,
+        newImageUri: Uri?
+    ) {
+        lifecycleScope.launch {
+            setLoading(true)
+            try {
+                val productoRequest = ProductoRequestDto(nombre, precio, descripcion, idCategoria)
+                val productoJson = Gson().toJson(productoRequest)
+                val productoRequestBody = RequestBody.create("application/json".toMediaTypeOrNull(), productoJson)
+
+                if (newImageUri != null) {
+                    // Actualizar con nueva imagen
+                    val file = getFileFromUri(newImageUri)
+                    if (file != null && file.exists()) {
+                        val requestBody = RequestBody.create("image/*".toMediaTypeOrNull(), file)
+                        val filePart = MultipartBody.Part.createFormData("file", file.name, requestBody)
+                        createAuthenticatedApiService().updateProductoWithImage(idProducto, productoRequestBody, filePart)
+                    } else {
+                        Toast.makeText(requireContext(), "Error con la imagen", Toast.LENGTH_SHORT).show()
+                        return@launch
+                    }
+                } else {
+                    // Actualizar sin cambiar imagen
+                    createAuthenticatedApiService().updateProducto(idProducto, productoRequest)
+                }
+
+                Toast.makeText(requireContext(), "Producto actualizado exitosamente", Toast.LENGTH_SHORT).show()
+                cargarProductos()
+            } catch (e: HttpException) {
+                Toast.makeText(requireContext(), "Error HTTP: ${e.message()} ${e.code()}", Toast.LENGTH_SHORT).show()
+            } catch (e: IOException) {
+                Toast.makeText(requireContext(), "Error de red: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Error al actualizar: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            } finally {
+                setLoading(false)
+            }
+        }
+    }
+
     companion object {
         private const val IMAGE_PICK_REQUEST = 1
+        private const val IMAGE_EDIT_REQUEST = 2
     }
 }

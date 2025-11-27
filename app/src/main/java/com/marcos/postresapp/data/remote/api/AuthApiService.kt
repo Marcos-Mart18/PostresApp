@@ -1,21 +1,20 @@
 package com.marcos.postresapp.data.remote.api
 
-import com.marcos.postresapp.data.remote.models.LoginRequest
-import com.marcos.postresapp.data.remote.models.LoginResponse
-import com.marcos.postresapp.data.remote.models.RefreshTokenRequest
-import com.marcos.postresapp.data.remote.models.RefreshTokenResponse
-import okhttp3.RequestBody
+import com.marcos.postresapp.data.remote.dto.auth.LoginRequestDto
+import com.marcos.postresapp.data.remote.dto.auth.LoginResponseDto
+import com.marcos.postresapp.data.remote.dto.auth.RefreshTokenRequestDto
+import com.marcos.postresapp.data.remote.dto.auth.RefreshTokenResponseDto
 import retrofit2.http.Body
 import retrofit2.http.POST
 
 interface AuthApiService {
     @POST("api/v1/auth/login")
-    suspend fun login(@Body request: LoginRequest): LoginResponse
+    suspend fun login(@Body request: LoginRequestDto): LoginResponseDto
 
-    @POST("api/v1/auth/refresh-token")
+    @POST("api/v1/auth/refresh")
     suspend fun refreshAccessToken(
-        @Body refreshTokenRequest: RefreshTokenRequest
-    ): RefreshTokenResponse
+        @Body refreshTokenRequest: RefreshTokenRequestDto
+    ): RefreshTokenResponseDto
 
     @POST("api/v1/auth/logout")
     suspend fun logout(@Body request: Map<String, String>)
